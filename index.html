@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Espec Pro — Especionador Inteligente</title>
+<meta name="description" content="Espec Pro - Especionador Inteligente. Acompanhe suas notas, desempenho escolar e metas por trimestre.">
+<meta name="theme-color" content="#080c0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100'%3E%3Crect width='120' height='100' rx='20' fill='%23080c0a'/%3E%3Ctext x='38' y='65' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='48' fill='%2300e68a'%3EE%3C/text%3E%3Ctext x='76' y='50' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='14' fill='%2300e68a'%3EPro%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script>
+tailwind.config={theme:{extend:{colors:{base:'#080c0a',surface:'#0f1613','surface-2':'#151e1a','surface-3':'#1b2722',edge:'#243530',accent:'#00e68a','accent-dim':'#00b36b',fg:'#e4ede7',muted:'#5e8572',danger:'#ff6b6b',warning:'#ffd93d'},fontFamily:{display:['"Space Grotesk"','sans-serif'],body:['"DM Sans"','sans-serif']}}}}
+</script>
+<style>
+:root{--accent:#00e68a;--danger:#ff6b6b;--warning:#ffd93d}
+*{box-sizing:border-box}body{background:#080c0a;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 600px 400px at 20% 30%,rgba(0,230,138,0.05) 0%,transparent 70%),radial-gradient(ellipse 500px 500px at 80% 70%,rgba(0,179,107,0.04) 0%,transparent 70%),radial-gradient(ellipse 300px 300px at 50% 50%,rgba(107,197,255,0.02) 0%,transparent 70%);animation:bgD 30s ease-in-out infinite alternate;pointer-events:none;z-index:0}
+@keyframes bgD{to{transform:translate(30px,-20px)scale(1.05)}}
+.nav-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 1rem;border-radius:.5rem;color:#5e8572;transition:all .2s;cursor:pointer;font-size:.85rem;border-left:3px solid transparent}
+.nav-item:hover{color:#e4ede7;background:rgba(0,230,138,0.05)}
+.nav-item.active{color:var(--accent);background:rgba(0,230,138,0.08);border-left-color:var(--accent);font-weight:500}
+.glass-card{background:rgba(15,22,19,0.85);backdrop-filter:blur(12px);border:1px solid #243530;border-radius:.75rem;transition:all .3s}
+.glass-card:hover{border-color:rgba(0,230,138,0.2);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,230,138,0.06)}
+.glass-card.nh:hover{transform:none;box-shadow:none}
+.metric-card{position:relative;overflow:hidden}
+.metric-card::after{content:'';position:absolute;top:-30px;right:-30px;width:80px;height:80px;border-radius:50%;background:rgba(0,230,138,0.06);transition:transform .4s}
+.metric-card:hover::after{transform:scale(1.5)}
+.fade-up{opacity:0;transform:translateY(20px);animation:fU .5s ease forwards}
+@keyframes fU{to{opacity:1;transform:translateY(0)}}
+.progress-ring-circle{transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1);transform:rotate(-90deg);transform-origin:50% 50%}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-overlay.open .modal-box{animation:modalBounceIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards}
+@keyframes modalBounceIn {
+  0% { opacity: 0; transform: scale(0.85) translateY(30px); }
+  60% { opacity: 1; transform: scale(1.02) translateY(-5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-box{background:#0f1613;border:1px solid #243530;border-radius:1rem;padding:1.75rem;width:90%;max-width:440px;transform:scale(.95)translateY(10px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);max-height:90vh;overflow-y:auto}
+.modal-box .input-field:focus{border-color:#00e68a;box-shadow:0 0 0 3px rgba(0,230,138,0.12), 0 0 20px rgba(0,230,138,0.06)}
+.modal-box button[class*="bg-accent"]:hover{box-shadow:0 4px 20px rgba(0,230,138,0.35);transform:translateY(-1px)}
+.modal-box button[class*="bg-accent"]:active{transform:translateY(0);box-shadow:0 2px 8px rgba(0,230,138,0.2)}
+.modal-box > *:not(:first-child){animation:modalChildIn 0.3s ease forwards;opacity:0}
+@keyframes modalChildIn { to { opacity: 1; transform: translateY(0); } }
+.toast{padding:.75rem 1.2rem;border-radius:.6rem;font-size:.85rem;color:#e4ede7;animation:tI 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),tO .35s ease 2.5s forwards;border:1px solid #243530;background:rgba(15,22,19,0.95);backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.toast.success{border-left:3px solid var(--accent)}.toast.error{border-left:3px solid var(--danger)}.toast.info{border-left:3px solid #6bc5ff}
+@keyframes tI{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes tO{to{opacity:0;transform:translateX(40px)}}
+.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .5rem;border-radius:9999px;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-excelente{background:rgba(0,230,138,0.15);color:#00e68a}.badge-bom{background:rgba(107,197,255,0.15);color:#6bc5ff}
+.badge-regular{background:rgba(255,217,61,0.15);color:#ffd93d}.badge-critico{background:rgba(255,107,107,0.15);color:#ff6b6b}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#243530;border-radius:3px}
+.input-field{width:100%;padding:.6rem .85rem;background:#0a0f0d;border:1px solid #243530;border-radius:.5rem;color:#e4ede7;font-family:'DM Sans',sans-serif;font-size:.875rem;transition:border-color .2s}
+.input-field:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,230,138,0.1)}
+.input-field::placeholder{color:#3d5c4e}
+.disc-grades{max-height:0;overflow:hidden;transition:max-height .4s ease}.disc-grades.open{max-height:600px}
+.fab{position:fixed;bottom:1.5rem;right:1.5rem;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#080c0a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;cursor:pointer;z-index:50;box-shadow:0 4px 24px rgba(0,230,138,0.3);transition:all .3s}
+.fab:hover{transform:scale(1.1)rotate(90deg);box-shadow:0 6px 32px rgba(0,230,138,0.4)}
+.empty-state{text-align:center;padding:3rem 1rem;color:#3d5c4e}.empty-state i{font-size:2.5rem;margin-bottom:.75rem;display:block}
+.empty-card{border:2px dashed #243530;border-radius:1rem;text-align:center;padding:2.5rem 2rem;color:#3d5c4e;background:transparent;cursor:pointer;transition:all .4s cubic-bezier(0.4, 0, 0.2, 1)}
+.empty-card:hover{border-color:rgba(0,230,138,0.3);background:rgba(0,230,138,0.02);color:#5e8572;transform:scale(1.01)}
+.trend-up{color:#00e68a}.trend-down{color:#ff6b6b}.trend-stable{color:#5e8572}
+.trim-tab{padding:.35rem .8rem;border-radius:.4rem;font-size:.78rem;font-weight:500;color:#5e8572;transition:all .2s;cursor:pointer;background:transparent;border:none;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.trim-tab:hover{color:#e4ede7}.trim-tab.active{background:#243530;color:#00e68a}
+.sug-bar{height:5px;border-radius:3px;background:#1b2722;overflow:hidden}.sug-bar-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.teacher-diff{font-size:.65rem;padding:.1rem .35rem;border-radius:.25rem;background:rgba(255,217,61,0.12);color:#ffd93d;display:inline-flex;align-items:center;gap:.2rem}
+.spreadsheet{width:100%;border-collapse:separate;border-spacing:0}
+.spreadsheet th{background:#131b17;padding:.5rem .4rem;text-align:center;font-size:.7rem;color:#5e8572;border-bottom:1px solid #243530;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.spreadsheet td{padding:.55rem .4rem;text-align:center;border-bottom:1px solid #1b27221a;font-size:.82rem}
+.spreadsheet tbody tr:hover td{background:rgba(0,230,138,0.02)}
+.spreadsheet .dn{text-align:left;font-weight:600;font-size:.8rem;white-space:nowrap}
+.spreadsheet .avg-cell{font-weight:700;font-family:'Space Grotesk',sans-serif}
+.spreadsheet .best-cell{position:relative}.spreadsheet .best-cell::after{content:'\2605';position:absolute;top:1px;right:1px;font-size:.45rem;color:#ffd93d}
+.sug-timeline{display:flex;gap:.4rem;flex-wrap:wrap}
+.sug-test{padding:.35rem .5rem;border-radius:.4rem;font-size:.75rem;text-align:center;min-width:60px;transition:all .2s}
+.sug-test.done{border:1px solid #243530;background:#0f1613}
+.sug-test.future{border:1px dashed #243530;background:transparent}
+.sug-test.best{box-shadow:0 0 0 1.5px #ffd93d}
+.sug-test.next{border:1px solid #00e68a;background:rgba(0,230,138,0.05);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,230,138,0.2)}50%{box-shadow:0 0 0 4px rgba(0,230,138,0)}}
+.review-overlay{position:fixed;inset:0;background:#080c0a;z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.review-overlay.open{opacity:1;pointer-events:all}
+.review-card{text-align:center;max-width:380px;width:90%}
+.cfg-grade-row{display:flex;align-items:center;gap:.5rem;padding:.5rem .6rem;border-radius:.5rem;transition:background .2s}
+.cfg-grade-row:hover{background:rgba(0,230,138,0.03)}
+.pro-badge{font-size:.55rem;padding:.1rem .35rem;border-radius:.25rem;background:rgba(0,230,138,0.15);color:#00e68a;font-weight:700;letter-spacing:.05em;vertical-align:super;margin-left:2px}
+body:not(.pro-active) .pro-badge{display:none!important}
+.pro-active .pro-badge{display:inline}
+.sidebar-profile{padding:0 1.25rem 0.5rem;text-align:center}
+.sidebar-profile-name{color:#e4ede7;font-size:.8rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.sidebar-profile-school{color:#5e8572;font-size:.65rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+@media(max-width:1023px){
+#sidebar{transform:translateX(-100%);transition:transform .3s;z-index:60}#sidebar.open{transform:translateX(0)}
+#main{margin-left:0!important}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:55;opacity:0;pointer-events:none;transition:opacity .3s}
+.sidebar-overlay.open{opacity:1;pointer-events:all}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* View transition */
+.view-section{animation:viewIn .3s ease forwards}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* === REDESIGNED ONBOARDING === */
+#onboard-overlay { z-index: 150; }
+#onboard-overlay .modal-box {
+  max-width: 520px;
+  text-align: center;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0,230,138,0.15);
+  background: linear-gradient(180deg, #0f1613 0%, #0a100e 100%);
+}
+.onboard-progress-bar {
+  height: 3px;
+  background: #1b2722;
+  position: relative;
+  overflow: hidden;
+}
+.onboard-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e68a, #6bc5ff);
+  border-radius: 0 3px 3px 0;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 12px rgba(0,230,138,0.4);
+}
+.onboard-content {
+  padding: 2.5rem 2rem 2rem;
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.onboard-icon-area {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.onboard-icon-area::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,230,138,0.15) 0%, transparent 70%);
+  animation: onIconGlow 3s ease-in-out infinite;
+}
+@keyframes onIconGlow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+.onboard-icon-area > * {
+  font-size: 2.8rem;
+  position: relative;
+  z-index: 1;
+  animation: onIconFloat 4s ease-in-out infinite;
+}
+@keyframes onIconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.onboard-step-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: #e4ede7;
+  margin-bottom: 0.6rem;
+  animation: stepContentIn 0.5s ease forwards;
+}
+.onboard-step-desc {
+  color: #5e8572;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  max-width: 360px;
+  animation: stepContentIn 0.5s ease 0.1s forwards;
+  opacity: 0;
+}
+.onboard-input-area {
+  animation: stepContentIn 0.5s ease 0.2s forwards;
+  opacity: 0;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 300px;
+}
+.onboard-input-area input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #0a0f0d;
+  border: 1.5px solid #243530;
+  border-radius: 0.75rem;
+  color: #e4ede7;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  text-align: center;
+  transition: all 0.3s;
+  outline: none;
+}
+.onboard-input-area input:focus {
+  border-color: #00e68a;
+  box-shadow: 0 0 0 3px rgba(0,230,138,0.15), 0 0 20px rgba(0,230,138,0.08);
+}
+.onboard-input-area input::placeholder {
+  color: #3d5c4e;
+}
+@keyframes stepContentIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.onboard-dots-new {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+.onboard-dot-new {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #243530;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.onboard-dot-new.active {
+  background: #00e68a;
+  width: 24px;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(0,230,138,0.4);
+}
+.onboard-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 0 2rem 2rem;
+  animation: stepContentIn 0.5s ease 0.3s forwards;
+  opacity: 0;
+}
+.onboard-actions .btn-onboard-skip {
+  padding: 0.6rem 1.5rem;
+  font-size: 0.85rem;
+  color: #5e8572;
+  background: transparent;
+  border: 1px solid #243530;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.2s;
+}
+.onboard-actions .btn-onboard-skip:hover {
+  color: #e4ede7;
+  border-color: #5e8572;
+}
+.onboard-actions .btn-onboard-next {
+  padding: 0.6rem 2rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #080c0a;
+  background: #00e68a;
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all 0.3s;
+  box-shadow: 0 2px 12px rgba(0,230,138,0.3);
+}
+.onboard-actions .btn-onboard-next:hover {
+  background: #00b36b;
+  box-shadow: 0 4px 20px rgba(0,230,138,0.4);
+  transform: translateY(-1px);
+}
+.onboard-actions .btn-onboard-next:active {
+  transform: translateY(0);
+}
+/* Onboarding feature grid */
+.onboard-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 1rem;
+}
+.onboard-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(0,230,138,0.05);
+  border: 1px solid rgba(0,230,138,0.1);
+  border-radius: 0.5rem;
+  animation: stepContentIn 0.4s ease forwards;
+  opacity: 0;
+}
+.onboard-feature-item i {
+  color: #00e68a;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.onboard-feature-item span {
+  color: #e4ede7;
+  font-size: 0.75rem;
+}
+/* Celebration animation */
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-60px) rotate(720deg); opacity: 0; }
+}
+.onboard-celebration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.celebrate-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: confetti 1.5s ease-out forwards;
+}
+
+/* PRINT CSS */
+@media print{
+  @page{margin:15mm}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff!important;color:#000!important;overflow:visible!important}
+  body::before{display:none!important}
+  #sidebar,#sidebar-overlay,header,.fab,#toast-c,.modal-overlay,.review-overlay,#modal-disc,#modal-nota,#modal-confirm,#onboard-overlay,#modal-share,#modal-upgrade{display:none!important}
+  .glass-card{background:#fff!important;border:1px solid #ddd!important;box-shadow:none!important;transform:none!important;backdrop-filter:none!important}
+  .glass-card:hover{transform:none!important;box-shadow:none!important}
+  .metric-card::after{display:none!important}
+  .spreadsheet th{background:#f3f4f6!important;color:#333!important;border-bottom:2px solid #333!important}
+  .spreadsheet td{border-bottom:1px solid #ccc!important;color:#000!important}
+  .spreadsheet tbody tr:hover td{background:transparent!important}
+  .badge,.teacher-diff{border:1px solid #999!important;background:#f9f9f9!important}
+  .badge-excelente{color:#059669!important}.badge-bom{color:#2563eb!important}.badge-regular{color:#d97706!important}.badge-critico{color:#dc2626!important}
+  .text-muted,.text-fg{color:#333!important}
+  .fade-up{opacity:1!important;transform:none!important;animation:none!important}
+  .view-section{animation:none!important}
+  #main{margin-left:0!important;padding-top:0!important}
+  #view-title{color:#000!important;font-size:18pt!important}
+  #view-title::after{content:attr(data-print-date);display:block;font-size:9pt;color:#666!important;font-weight:normal;font-family:'DM Sans',sans-serif;margin-top:2px}
+  .trend-up,.trend-down,.trend-stable{color:#000!important}
+  svg circle,svg text{stroke:#333!important;fill:#333!important}
+  svg .progress-ring-circle{stroke:#00e68a!important}
+  .profile-print-card{border:1px solid #ddd!important;padding:8px 12px!important;margin-bottom:12px!important;page-break-inside:avoid!important}
+  .profile-print-card .text-muted{color:#666!important}
+}
+</style>
+</head>
+<body class="text-fg font-body min-h-screen relative">
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
+<aside id="sidebar" class="fixed left-0 top-0 h-full w-60 bg-surface border-r border-edge flex flex-col">
+  <div class="p-5 pb-1"><h1 class="font-display font-bold text-xl tracking-tight">Espec Pro<span class="pro-badge">PRO</span></h1><p class="text-muted text-xs mt-.5">Especionador Inteligente <span class="text-accent/60">v5.0</span></p></div>
+  <div id="sidebar-profile" class="sidebar-profile"></div>
+  <nav class="px-2.5 flex-1 space-y-0.5">
+    <a class="nav-item active" data-view="dashboard"><i class="fas fa-chart-pie w-5 text-center"></i>Dashboard</a>
+    <a class="nav-item" data-view="disciplinas"><i class="fas fa-book w-5 text-center"></i>Disciplinas</a>
+    <a class="nav-item" data-view="sugestoes"><i class="fas fa-bullseye w-5 text-center"></i>Sugestoes</a>
+    <a class="nav-item" data-view="trimestres"><i class="fas fa-calendar-days w-5 text-center"></i>Trimestres</a>
+    <a class="nav-item" data-view="configuracoes"><i class="fas fa-gear w-5 text-center"></i>Configuracoes</a>
+  </nav>
+  <div class="px-3 pb-3 space-y-1">
+    <button onclick="showOnboarding()" class="text-muted hover:text-fg text-xs flex items-center gap-2 transition-colors py-2 w-full text-left"><i class="fas fa-circle-question w-5 text-center"></i>Ajuda</button>
+    <button onclick="resetAll()" class="text-muted hover:text-danger text-xs flex items-center gap-2 transition-colors py-2 w-full text-left"><i class="fas fa-trash-can w-5 text-center"></i>Limpar todos os dados</button>
+  </div>
+</aside>
+
+<header class="lg:hidden fixed top-0 left-0 right-0 h-14 bg-surface/90 backdrop-blur-md border-b border-edge flex items-center px-4 z-40">
+  <button onclick="toggleSidebar(true)" class="text-muted hover:text-fg transition-colors mr-3"><i class="fas fa-bars text-lg"></i></button>
+  <span class="font-display font-bold text-lg">Espec Pro<span class="pro-badge">PRO</span></span>
+</header>
+
+<main id="main" class="lg:ml-60 min-h-screen pt-16 lg:pt-0 relative z-10">
+  <div class="px-4 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div><h2 id="view-title" class="font-display font-bold text-xl sm:text-2xl" data-print-date=""></h2><p id="view-subtitle" class="text-muted text-sm mt-.5"></p></div>
+    <div id="header-actions" class="flex items-center gap-3">
+      <span id="current-date" class="text-muted text-xs hidden sm:block"></span>
+      <button id="btn-share-dash" onclick="openShareModal()" class="hidden bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Partilhar resumo"><i class="fas fa-share-nodes"></i>Partilhar</button>
+      <button onclick="openAddDisc()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fas fa-plus text-xs"></i>Disciplina</button>
+    </div>
+  </div>
+  <section id="view-dashboard" class="px-4 sm:px-8 pb-24 view-section"></section>
+  <section id="view-disciplinas" class="px-4 sm:px-8 pb-24 hidden view-section"></section>
+  <section id="view-sugestoes" class="px-4 sm:px-8 pb-24 hidden view-section"></section>
+  <section id="view-trimestres" class="px-4 sm:px-8 pb-24 hidden view-section"></section>
+  <section id="view-configuracoes" class="px-4 sm:px-8 pb-24 hidden view-section"></section>
+</main>
+
+<button class="fab" onclick="openAddNota()" aria-label="Registrar nota"><i class="fas fa-plus"></i></button>
+
+<!-- Modal: Disciplina -->
+<div id="modal-disc" class="modal-overlay" onclick="if(event.target===this)closeM('modal-disc')">
+  <div class="modal-box">
+    <h3 class="font-display font-bold text-lg mb-1" id="modal-disc-title">Nova Disciplina</h3>
+    <p class="text-muted text-sm mb-4" id="modal-disc-sub">Define o nome e quantos testes o professor usa por trimestre.</p>
+    <input id="inp-d-name" type="text" class="input-field mb-3" placeholder="Nome da disciplina" maxlength="40">
+    <div class="mb-4"><label class="text-muted text-xs mb-1 block">Testes por trimestre (definido pelo professor)</label><input id="inp-d-tests" type="number" class="input-field" min="1" max="20" value="4"></div>
+    <div class="flex gap-3 justify-end"><button onclick="closeM('modal-disc')" class="px-4 py-2 text-sm text-muted hover:text-fg transition-colors">Cancelar</button><button id="btn-d-save" onclick="handleSaveDisc()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-sm px-5 py-2 rounded-lg transition-colors">Adicionar</button></div>
+  </div>
+</div>
+
+<!-- Modal: Nota (adicionar/editar) -->
+<div id="modal-nota" class="modal-overlay" onclick="if(event.target===this)closeM('modal-nota')">
+  <div class="modal-box">
+    <h3 class="font-display font-bold text-lg mb-1" id="modal-nota-title">Registrar Nota</h3>
+    <p class="text-muted text-sm mb-4" id="modal-nota-sub">Preenche os dados do teste.</p>
+    <select id="inp-n-disc" class="input-field mb-3"></select>
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div><label class="text-muted text-xs mb-1 block">Trimestre</label><select id="inp-n-trim" class="input-field"><option value="1">1º Trimestre</option><option value="2">2º Trimestre</option><option value="3">3º Trimestre</option></select></div>
+      <div><label class="text-muted text-xs mb-1 block">Data</label><input id="inp-n-date" type="date" class="input-field"></div>
+    </div>
+    <input id="inp-n-label" type="text" class="input-field mb-3" placeholder="Ex: Teste 1, Prova..." maxlength="30">
+    <div><label class="text-muted text-xs mb-1 block">Nota (0 - 20)</label><input id="inp-n-value" type="number" class="input-field" min="0" max="20" step="0.1" placeholder="0.0"></div>
+    <div id="edit-history-info" class="hidden mt-3 text-xs text-muted"></div>
+    <div class="flex gap-3 justify-end mt-5"><button onclick="closeM('modal-nota')" class="px-4 py-2 text-sm text-muted hover:text-fg transition-colors">Cancelar</button><button id="btn-n-save" onclick="handleSaveNota()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-sm px-5 py-2 rounded-lg transition-colors">Registrar</button></div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar -->
+<div id="modal-confirm" class="modal-overlay" onclick="if(event.target===this)closeM('modal-confirm')">
+  <div class="modal-box">
+    <h3 class="font-display font-bold text-lg mb-1 text-danger">Confirmar</h3>
+    <p id="confirm-msg" class="text-muted text-sm mb-5"></p>
+    <div class="flex gap-3 justify-end"><button onclick="closeM('modal-confirm')" class="px-4 py-2 text-sm text-muted hover:text-fg transition-colors">Cancelar</button><button id="confirm-btn" class="bg-danger hover:bg-red-400 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors">Confirmar</button></div>
+  </div>
+</div>
+
+<!-- Modal: Partilhar Resumo -->
+<div id="modal-share" class="modal-overlay" onclick="if(event.target===this)closeM('modal-share')">
+  <div class="modal-box">
+    <h3 class="font-display font-bold text-lg mb-3">Partilhar Resumo</h3>
+    <div id="share-preview" class="bg-surface-2 rounded-lg p-4 mb-4 text-sm whitespace-pre-line font-body" style="max-height:300px;overflow-y:auto"></div>
+    <div class="flex gap-3 justify-end">
+      <button onclick="closeM('modal-share')" class="px-4 py-2 text-sm text-muted hover:text-fg transition-colors">Fechar</button>
+      <button onclick="copyShareText()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-sm px-5 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fas fa-copy"></i>Copiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding Overlay -->
+<div id="onboard-overlay" class="modal-overlay" style="z-index:150">
+  <div class="modal-box" style="max-width:520px;padding:0;overflow:hidden;border:1px solid rgba(0,230,138,0.15);background:linear-gradient(180deg,#0f1613 0%,#0a100e 100%)">
+    <div class="onboard-progress-bar"><div class="onboard-progress-fill" id="onboard-progress" style="width:14.28%"></div></div>
+    <div class="onboard-content" id="onboard-content">
+      <div class="onboard-celebration" id="onboard-celebration"></div>
+      <div class="onboard-icon-area" id="onboard-icon"></div>
+      <h3 class="onboard-step-title" id="onboard-title"></h3>
+      <p class="onboard-step-desc" id="onboard-desc"></p>
+      <div class="onboard-input-area hidden" id="onboard-input">
+        <input id="onboard-inp" type="text" maxlength="40" placeholder="">
+      </div>
+      <div class="onboard-dots-new" id="onboard-dots"></div>
+    </div>
+    <div class="onboard-actions">
+      <button id="onboard-skip" onclick="closeOnboarding()" class="btn-onboard-skip">Saltar</button>
+      <button id="onboard-next" onclick="nextOnboardStep()" class="btn-onboard-next">Seguinte</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Upgrade Pro -->
+<div id="modal-upgrade" class="modal-overlay" onclick="if(event.target===this)closeM('modal-upgrade')">
+  <div class="modal-box" style="max-width:420px">
+    <div class="text-center mb-4">
+      <div class="inline-flex items-center gap-2 mb-2"><span class="font-display font-bold text-lg">Espec Pro</span><span class="pro-badge">PRO</span></div>
+      <p class="text-muted text-sm">Chegaste ao limite da versao gratuita.</p>
+    </div>
+    <div class="bg-surface-2 rounded-lg p-3 mb-4 space-y-2 text-sm">
+      <div class="flex items-center gap-2"><i class="fas fa-check text-accent text-xs"></i><span>Disciplinas ilimitadas</span></div>
+      <div class="flex items-center gap-2"><i class="fas fa-check text-accent text-xs"></i><span>Partilha no WhatsApp</span></div>
+      <div class="flex items-center gap-2"><i class="fas fa-check text-accent text-xs"></i><span>Exporta para Excel (CSV)</span></div>
+      <div class="flex items-center gap-2"><i class="fas fa-check text-accent text-xs"></i><span>Teu nome nos relatorios</span></div>
+    </div>
+    <div class="text-center mb-4">
+      <p class="font-display font-bold text-2xl text-accent">50 MZN</p>
+      <p class="text-muted text-xs"> valido durante todo o ano lectivo</p>
+    </div>
+    <div class="bg-surface-2 rounded-lg p-3 mb-4 text-xs text-muted space-y-1">
+      <p class="font-semibold text-fg mb-1">Para activar:</p>
+      <p>1. Envia <b>50 MZN</b> por M-Pesa para <b>857377912</b></p>
+      <p>2. Envia captura do pagamento por WhatsApp</p>
+      <p>3. Recebes a tua chave de activacao</p>
+    </div>
+    <div class="mb-4">
+      <p class="text-muted text-xs mb-2 text-center">Ja tens uma chave?</p>
+      <div class="flex gap-2">
+        <input id="inp-pro-key" type="text" class="input-field text-center font-display text-sm tracking-wider" placeholder="SPEC-XXXX-XXXX" maxlength="15" style="text-transform:uppercase">
+        <button onclick="activatePro()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-sm px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Activar</button>
+      </div>
+      <p id="pro-activate-msg" class="text-xs mt-2 text-center hidden"></p>
+    </div>
+    <div class="text-center"><button onclick="closeM('modal-upgrade')" class="px-4 py-2 text-sm text-muted hover:text-fg transition-colors">Fechar</button></div>
+  </div>
+</div>
+
+<!-- Review Mode Overlay -->
+<div id="review-overlay" class="review-overlay">
+  <div class="review-card" id="review-card"></div>
+</div>
+
+<div id="toast-c" class="fixed bottom-20 right-4 z-50 flex flex-col gap-2"></div>
+
+<script>
+// =============================================
+//  CONSTANTES & DATA VERSION
+// =============================================
+const SK='espec_v5', MX=20, DATA_VERSION=4;
+const APP_URL='https://hermen-00.github.io/espec/';
+const STK='espec_state';
+const TL={1:'1º Trim',2:'2º Trim',3:'3º Trim'}, TC={1:'#00e68a',2:'#6bc5ff',3:'#ffd93d'};
+const PAL=['#00e68a','#ff6b9d','#ffd93d','#6bc5ff','#c77dff','#ff8c42','#4ecdc4','#ff6b6b','#a8e6cf','#f7aef8','#7bed9f','#70a1ff','#ffa502','#ff4757','#2ed573'];
+const FREE_LIMIT=4;
+const PRO_KEYS=['SPEC-A1B2-C3D4','SPEC-E5F6-G7H8','SPEC-I9J0-K1L2','SPEC-M3N4-O5P6','SPEC-Q7R8-S9T0','SPEC-U1V2-W3X4','SPEC-Y5Z6-A7B8','SPEC-C9D0-E1F2','SPEC-G3H4-I5J6','SPEC-K7L8-M9N0','SPEC-O1P2-Q3R4','SPEC-S5T6-U7V8','SPEC-W9X0-Y1Z2','SPEC-A3B4-C5D6','SPEC-E7F8-G9H0','SPEC-I1J2-K3L4','SPEC-M5N6-O7P8','SPEC-Q9R0-S1T2','SPEC-U3V4-W5X6','SPEC-Y7Z8-A9B0'];
+const PRO_SK='espec_pro';
+function isPro(){try{return!!localStorage.getItem(PRO_SK)}catch(e){return false}}
+function checkDiscLimit(){if(isPro())return true;if(D.disciplines.length>=FREE_LIMIT){showUpgradeModal();return false}return true}
+const genId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>new Date().toISOString().split('T')[0];
+function fmtD(s){return new Date(s+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
+function clamp(val,min,max){return Math.min(Math.max(val,min),max)}
+
+// =============================================
+//  DADOS
+// =============================================
+let D=null, curView='dashboard', curTrim=1, notaMode='add', notaEditId=null, editDiscId=null;
+
+function loadD(){
+  try{const r=localStorage.getItem(SK);D=r?JSON.parse(r):{settings:{defaultTests:4,defaultTarget:14,onboarded:false,dataVersion:1,userName:'',schoolName:''},disciplines:[]};if(!D.settings)D.settings={defaultTests:4,defaultTarget:14,onboarded:false,dataVersion:1,userName:'',schoolName:''};if(!Array.isArray(D.disciplines))D.disciplines=[];}
+  catch{D={settings:{defaultTests:4,defaultTarget:14,onboarded:false,dataVersion:1,userName:'',schoolName:''},disciplines:[]};}
+  if(D.settings.userName===undefined||D.settings.userName===null)D.settings.userName='';
+  if(D.settings.schoolName===undefined||D.settings.schoolName===null)D.settings.schoolName='';
+  if(D.settings.totalDisciplines===undefined||D.settings.totalDisciplines===null)D.settings.totalDisciplines=8;
+  D.disciplines.forEach(d=>{if(!d.testsPerTrimester)d.testsPerTrimester=D.settings.defaultTests;if(d.target===undefined)d.target=null;if(!d.grades)d.grades=[];d.grades.forEach(g=>{if(!g.editHistory)g.editHistory=[];});});
+}
+function saveD(){try{localStorage.setItem(SK,JSON.stringify(D))}catch{toast('Erro ao salvar.','error')}}
+function nextColor(){const u=new Set(D.disciplines.map(d=>d.color));for(const c of PAL)if(!u.has(c))return c;return PAL[D.disciplines.length%PAL.length]}
+
+// =============================================
+//  DATA SANITIZATION
+// =============================================
+function sanitize(){
+  let corrupted=false;
+  if(!D||typeof D!=='object'||!D.settings||!Array.isArray(D.disciplines)){
+    corrupted=true;
+  } else {
+    D.disciplines=D.disciplines.filter(d=>{
+      if(!d||typeof d!=='object'||!d.id||!d.name||typeof d.name!=='string')return false;
+      if(!Array.isArray(d.grades)){d.grades=[];corrupted=true}
+      d.grades=d.grades.filter(g=>{
+        if(!g||typeof g.value==='undefined'||typeof g.trimester==='undefined')return false;
+        if(typeof g.value!=='number'||isNaN(g.value)){corrupted=true;return false}
+        if(g.value<0||g.value>20){g.value=clamp(g.value,0,20);corrupted=true}
+        if(![1,2,3].includes(g.trimester)){corrupted=true;return false}
+        if(!g.editHistory)g.editHistory=[];
+        if(!g.id)g.id=genId();
+        return true;
+      });
+      d.testsPerTrimester=clamp(parseInt(d.testsPerTrimester)||D.settings.defaultTests,1,20);
+      if(d.target!==null&&d.target!==undefined)d.target=clamp(parseInt(d.target),0,MX);
+      d.color=d.color||nextColor();
+      return true;
+    });
+    D.settings.defaultTests=clamp(parseInt(D.settings.defaultTests)||4,1,20);
+    D.settings.defaultTarget=clamp(parseInt(D.settings.defaultTarget)||14,0,MX);
+    if(D.settings.userName===undefined||D.settings.userName===null)D.settings.userName='';
+    if(D.settings.schoolName===undefined||D.settings.schoolName===null)D.settings.schoolName='';
+    D.settings.totalDisciplines=clamp(parseInt(D.settings.totalDisciplines)||8,1,20);
+  }
+  if(corrupted||!D.settings.dataVersion||D.settings.dataVersion<DATA_VERSION){
+    try{localStorage.setItem(SK+'_backup_corrupt',localStorage.getItem(SK)||'')}catch(e){}
+    D.settings.dataVersion=DATA_VERSION;
+    saveD();
+  }
+}
+
+// =============================================
+//  STATE PERSISTENCE
+// =============================================
+function saveState(){
+  try{localStorage.setItem(STK,JSON.stringify({lastView:curView,lastTrim:curTrim}))}catch(e){}
+}
+function restoreState(){
+  try{
+    const s=JSON.parse(localStorage.getItem(STK));
+    if(s){
+      if(s.lastView&&['dashboard','disciplinas','sugestoes','trimestres','configuracoes'].includes(s.lastView))curView=s.lastView;
+      if(s.lastTrim!==undefined&&(s.lastTrim==='year'||[1,2,3].includes(s.lastTrim)))curTrim=s.lastTrim;
+    }
+  }catch(e){}
+}
+
+// =============================================
+//  ANÁLISE
+// =============================================
+function gGrades(d,t){return(t==='year'||t===null)?d.grades:d.grades.filter(g=>g.trimester===t)}
+function dAvg(d,t){const g=gGrades(d,t);const tot=d.testsPerTrimester||4;const slots=(t==='year'||t===null)?tot*3:tot;return g.reduce((s,x)=>s+x.value,0)/slots}
+function dTeacherAvg(d,t){
+  const tot=d.testsPerTrimester||4;
+  if(t==='year'||t===null){let s=0,c=0;for(let i=1;i<=3;i++){const g=d.grades.filter(x=>x.trimester===i);if(g.length){s+=g.reduce((a,x)=>a+x.value,0)/tot;c++}}return c?s/c:0}
+  const g=d.grades.filter(x=>x.trimester===t);return g.reduce((s,x)=>s+x.value,0)/tot;
+}
+function gAvg(t){const td=D.settings.totalDisciplines||8;let s=0;D.disciplines.forEach(d=>{s+=dAvg(d,t)});return s/td}
+function gTeacherAvg(t){const td=D.settings.totalDisciplines||8;let s=0;D.disciplines.forEach(d=>{s+=dTeacherAvg(d,t)});return s/td}
+function missingDiscCount(t){const td=D.settings.totalDisciplines||8;return Math.max(0,td-D.disciplines.length)}
+function totalT(t){return D.disciplines.reduce((s,d)=>s+gGrades(d,t).length,0)}
+function totalExp(t){if(t==='year')return D.disciplines.reduce((s,d)=>s+(d.testsPerTrimester||4)*3,0);return D.disciplines.reduce((s,d)=>s+(d.testsPerTrimester||4),0)}
+function trnd(d,t){const g=gGrades(d,t).slice().sort((a,b)=>a.date.localeCompare(b.date));if(g.length<2)return'stable';if(g.length<=3){const df=g[g.length-1].value-g[g.length-2].value;return df>.5?'up':df<-.5?'down':'stable'}const m=Math.floor(g.length/2);const r=g.slice(m).reduce((s,x)=>s+x.value,0)/(g.length-m),o=g.slice(0,m).reduce((s,x)=>s+x.value,0)/m;const df=r-o;return df>.5?'up':df<-.5?'down':'stable'}
+function gTrnd(t){const all=D.disciplines.flatMap(d=>gGrades(d,t)).sort((a,b)=>a.date.localeCompare(b.date));if(all.length<2)return'stable';if(all.length<=3){const df=all[all.length-1].value-all[0].value;return df>.5?'up':df<-.5?'down':'stable'}const m=Math.floor(all.length/2);const r=all.slice(m).reduce((s,x)=>s+x.value,0)/(all.length-m),o=all.slice(0,m).reduce((s,x)=>s+x.value,0)/m;return r-o>.5?'up':r-o<-.5?'down':'stable'}
+function st(a){if(a>=17)return{label:'Excelente',cls:'badge-excelente'};if(a>=14)return{label:'Bom',cls:'badge-bom'};if(a>=10)return{label:'Regular',cls:'badge-regular'};return{label:'Critico',cls:'badge-critico'}}
+function gCol(v){return v>=14?'#00e68a':v>=10?'#ffd93d':'#ff6b6b'}
+function riskD(t){return D.disciplines.filter(d=>{const a=dAvg(d,t);return a>0&&a<10})}
+function goodD(t){return D.disciplines.filter(d=>dAvg(d,t)>=14)}
+
+// Sugestões progressivas
+function getSug(disc,trim,target){
+  const tot=disc.testsPerTrimester||4;
+  const t=trim==='year'?latestTrim(disc):trim;
+  if(!t)return{noData:true};
+  const grades=disc.grades.filter(x=>x.trimester===t).sort((a,b)=>a.date.localeCompare(b.date));
+  const done=grades.length,rem=Math.max(0,tot-done),sum=grades.reduce((s,x)=>s+x.value,0);
+  const curAvg=done?sum/done:0;
+  if(rem<=0)return{complete:true,finalAvg:sum/tot,curAvg,timeline:grades.map(g=>({...g,status:st(g.value),done:true,isBest:g.value===Math.max(...grades.map(x=>x.value))&&grades.indexOf(g)===grades.findIndex(x=>x.value===g.value)}))};
+  const needPer=Math.round(((target*tot-sum)/rem)*10)/10;
+  const possible=needPer<=MX;
+  const achieved=curAvg>=target;
+  const safety=Math.round((10*tot-sum)*10)/10;
+  const safetyOk=safety<=MX;
+  const keepAlive=rem>1?Math.round((target*tot-sum-20*(rem-1))*10)/10:needPer;
+  const alive=keepAlive<=MX;
+  const maxVal=Math.max(...grades.map(x=>x.value),0);
+  const timeline=grades.map(g=>({...g,status:st(g.value),done:true,isBest:g.value===maxVal&&grades.filter(x=>x.value===maxVal).indexOf(g)===0}));
+  for(let i=0;i<rem;i++)timeline.push({label:`Teste ${done+i+1}`,needed:needPer,done:false,possible,isNext:i===0});
+  return{complete:false,curAvg,needPer,possible,achieved,safety:Math.max(0,safety),safetyOk,keepAlive:Math.max(0,keepAlive),alive,rem,tot,done,timeline};
+}
+function latestTrim(d){for(let t=3;t>=1;t--)if(d.grades.some(g=>g.trimester===t))return t;return null}
+function trimSum(t){let best=null,ba=-1;D.disciplines.forEach(d=>{const g=gGrades(d,t);if(g.length){const a=dAvg(d,t);if(a>ba){ba=a;best=d.name}}});const avg=gAvg(t);let prev=null;if(t>1){prev=gAvg(t-1)}let ch=null;if(prev!==null&&avg>0)ch=avg-prev;return{avg,tests:totalT(t),best:best||'--',change:ch}}
+function temporalD(t){let all=[];if(t==='year')all=D.disciplines.flatMap(d=>d.grades.map(g=>({...g})));else all=D.disciplines.flatMap(d=>gGrades(d,t).map(g=>({...g})));if(!all.length)return{labels:[],values:[]};all.sort((a,b)=>a.date.localeCompare(b.date));const gr={};all.forEach(g=>{if(!gr[g.date])gr[g.date]=[];gr[g.date].push(g.value)});return{labels:Object.keys(gr).sort().map(fmtD),values:Object.keys(gr).sort().map(k=>{const a=gr[k];return a.reduce((s,v)=>s+v,0)/a.length})}}
+
+// =============================================
+//  SHARE
+// =============================================
+function generateShareText(t){
+  const has=D.disciplines.length>0&&totalT(t)>0;
+  if(!has)return null;
+  const avg=gAvg(t),tAvg=gTeacherAvg(t),tr=gTrnd(t);
+  const goodCount=goodD(t).length;
+  const status=st(avg).label;
+  const trendEmoji=tr==='up'?'📈':tr==='down'?'📉':'➡️';
+  const trendText=tr==='up'?'Melhorando':tr==='down'?'Caindo':'Estavel';
+  const discAvgs=D.disciplines.map(d=>({name:d.name,avg:dAvg(d,t),trnd:trnd(d,t)})).filter(x=>x.avg>0);
+  const best=discAvgs.length?[...discAvgs].sort((a,b)=>b.avg-a.avg)[0]:null;
+  const mostImproved=discAvgs.filter(x=>x.trnd==='up').sort((a,b)=>b.avg-a.avg)[0];
+  const trimLabel=t==='year'?'Ano Completo':TL[t];
+  const un=D.settings.userName||'';
+  const sn=D.settings.schoolName||'';
+  let txt=`📊 Espec Pro — Resumo de Notas`;
+  txt+=`\n`;
+  if(un||sn)txt+=`\n👤 ${un||'--'} ${sn?'| 🏫 '+sn:''}`;
+  txt+=`\n\n📈 Media Global: ${avg.toFixed(1)}/20 (${status})`;
+  txt+=`\n🏅 Media Professor: ${tAvg>0?tAvg.toFixed(1)+'/20':'--'}`;
+  txt+=`\n✅ Em Boa Forma: ${goodCount} disciplina(s)`;
+  txt+=`\n📉 Tendencia: ${trendEmoji} ${trendText}`;
+  if(best)txt+=`\n\n🏆 Melhor: ${best.name} (${best.avg.toFixed(1)})`;
+  if(mostImproved)txt+=`\n💪 Mais Melhorou: ${mostImproved.name}`;
+  txt+=`\n\n— Via Espec Pro\n${APP_URL}`;
+  return txt;
+}
+
+function openShareModal(){
+  const t=curView==='trimestres'&&curTrim!=='year'?curTrim:curTrim;
+  const txt=generateShareText(t);
+  const preview=document.getElementById('share-preview');
+  if(!txt){preview.textContent='Sem dados para partilhar. Adiciona disciplinas e notas primeiro.';window._shareText='';openM('modal-share');return}
+  preview.textContent=txt;
+  window._shareText=txt;
+  openM('modal-share');
+}
+
+function copyShareText(){
+  if(!window._shareText){toast('Nada para copiar.','error');return}
+  navigator.clipboard.writeText(window._shareText).then(()=>toast('Copiado para a area de transferencia!','success')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=window._shareText;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);toast('Copiado para a area de transferencia!','success');
+  });
+}
+
+// =============================================
+//  SIDEBAR PROFILE
+// =============================================
+function updateSidebarProfile(){
+  const el=document.getElementById('sidebar-profile');
+  const un=D.settings.userName||'';
+  const sn=D.settings.schoolName||'';
+  if(!un&&!sn){el.innerHTML='';return}
+  let h='';
+  if(un)h+=`<div class="sidebar-profile-name"><i class="fas fa-user text-xs text-accent/60 mr-1"></i>${un}</div>`;
+  if(sn)h+=`<div class="sidebar-profile-school"><i class="fas fa-school text-xs text-accent/40 mr-1"></i>${sn}</div>`;
+  el.innerHTML=h;
+}
+
+// =============================================
+//  NAVEGAÇÃO
+// =============================================
+function go(v){
+  curView=v;
+  saveState();
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
+  ['dashboard','disciplinas','sugestoes','trimestres','configuracoes'].forEach(id=>{
+    const el=document.getElementById('view-'+id);
+    el.classList.toggle('hidden',id!==v);
+    if(id===v){el.classList.remove('view-section');void el.offsetWidth;el.classList.add('view-section')}
+  });
+  const T={dashboard:['Dashboard','Visao geral do seu desempenho'],disciplinas:['Disciplinas','Gerir disciplinas e registar notas'],sugestoes:['Sugestoes','Metas e orientacao para proximos testes'],trimestres:['Trimestres','Analise detalhada por periodo'],configuracoes:['Configuracoes','Ajustes, edicao e eliminacao de dados']};
+  document.getElementById('view-title').textContent=T[v][0];
+  document.getElementById('view-title').setAttribute('data-print-date','Impresso em '+new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+  document.getElementById('view-subtitle').textContent=T[v][1];
+  const fn={dashboard:renderDash,disciplinas:renderDisc,sugestoes:renderSug,trimestres:renderTrim,configuracoes:renderCfg};
+  fn[v]();
+  toggleSidebar(false);
+}
+
+// =============================================
+//  DASHBOARD
+// =============================================
+function renderDash(){
+  const el=document.getElementById('view-dashboard');
+  const t=curTrim,has=D.disciplines.length>0&&totalT(t)>0;
+  // Show share button if there's data
+  const shareBtn=document.getElementById('btn-share-dash');
+  if(has&&isPro())shareBtn.classList.remove('hidden');else shareBtn.classList.add('hidden');
+
+  let h=`<div class="flex gap-1 bg-surface-2 p-1 rounded-lg w-fit mb-5 fade-up"><button class="trim-tab ${t==1?'active':''}" onclick="curTrim=1;saveState();renderDash()">1º Trim</button><button class="trim-tab ${t==2?'active':''}" onclick="curTrim=2;saveState();renderDash()">2º Trim</button><button class="trim-tab ${t==3?'active':''}" onclick="curTrim=3;saveState();renderDash()">3º Trim</button><button class="trim-tab ${t=='year'?'active':''}" onclick="curTrim='year';saveState();renderDash()">Ano</button></div>`;
+  const avg=gAvg(t),tAvg=gTeacherAvg(t),tests=totalT(t),exp=totalExp(t),tr=gTrnd(t);
+  const ti=tr==='up'?'fa-arrow-trend-up':tr==='down'?'fa-arrow-trend-down':'fa-minus';
+  const tc=tr==='up'?'trend-up':tr==='down'?'trend-down':'trend-stable';
+  const tt=tr==='up'?'Melhorando':tr==='down'?'Caindo':'Estavel';
+  const pct=has?Math.min((avg/MX)*100,100):0;const circ=2*Math.PI*42;const off=circ-(pct/100)*circ;
+  const rc=has?(avg>=14?'#00e68a':avg>=10?'#ffd93d':'#ff6b6b'):'#243530';
+  let td=null;if(has&&Math.abs(avg-tAvg)>0.01)td=(tAvg-avg).toFixed(1);
+  h+=`<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div class="glass-card metric-card p-4 fade-up"><div class="flex items-start justify-between"><div><p class="text-muted text-xs font-medium uppercase tracking-wider mb-1">Media ${t==='year'?'do Ano':'Global'}</p><p class="font-display font-bold text-2xl">${has?avg.toFixed(1):'--'}</p>${td!==null?`<span class="teacher-diff mt-1"><i class="fas fa-exclamation-triangle"></i>Prof: ${tAvg.toFixed(1)} (${td>0?'-':'+'}${Math.abs(td)})</span>`:''}</div><svg width="50" height="50" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#243530" stroke-width="6"/><circle cx="50" cy="50" r="42" fill="none" stroke="${rc}" stroke-width="6" stroke-linecap="round" class="progress-ring-circle" stroke-dasharray="${off} ${circ}"/><text x="50" y="54" text-anchor="middle" fill="#e4ede7" font-size="13" font-family="Space Grotesk" font-weight="700">${has?avg.toFixed(1):'--'}</text></svg></div><p class="text-muted text-xs mt-1">${has?st(avg).label:'Sem dados'}</p></div>
+    <div class="glass-card metric-card p-4 fade-up" style="animation-delay:.05s"><p class="text-muted text-xs font-medium uppercase tracking-wider mb-1">Testes</p><p class="font-display font-bold text-2xl">${tests}</p><p class="text-muted text-xs mt-1">${tests}/${exp} previstos</p>${exp>0?`<div class="sug-bar mt-2"><div class="sug-bar-fill" style="width:${Math.min((tests/exp)*100,100)}%;background:${tests>=exp?'#00e68a':'#6bc5ff'}"></div></div>`:''}</div>
+    <div class="glass-card metric-card p-4 fade-up" style="animation-delay:.1s"><p class="text-muted text-xs font-medium uppercase tracking-wider mb-1">Em Boa Forma</p><p class="font-display font-bold text-2xl text-accent">${goodD(t).length}</p><p class="text-muted text-xs mt-1">Media >= 14</p></div>
+    <div class="glass-card metric-card p-4 fade-up" style="animation-delay:.15s"><p class="text-muted text-xs font-medium uppercase tracking-wider mb-1">Tendencia</p><div class="flex items-center gap-2 mt-1"><i class="fas ${ti} text-xl ${has?tc:'trend-stable'}"></i><span class="font-display font-bold text-xl ${has?tc:'trend-stable'}">${has?tt:'--'}</span></div></div></div>`;
+
+  const missing=missingDiscCount(t);
+  if(missing>0)h+=`<div class="glass-card p-3 mb-3 fade-up border-l-2" style="border-left-color:#ffa502;animation-delay:.35s"><div class="flex items-center gap-2"><i class="fas fa-exclamation-triangle" style="color:#ffa502"></i><p class="text-xs" style="color:#ffa502"><b>${missing} disciplina(s)</b> sem notas registadas — a tua media global esta a ser afectada. Regista as tuas disciplinas em "Disciplinas".</p></div></div>`;
+
+  if(t==='year'){
+    h+='<h3 class="font-display font-semibold text-sm text-muted mb-3 fade-up">Comparacao por Trimestre</h3><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">';
+    for(let i=1;i<=3;i++){const s=trimSum(i);const ci=s.change===null?'':s.change>.3?'trend-up':s.change<-.3?'trend-down':'trend-stable';const cii=s.change===null?'':s.change>.3?'<i class="fas fa-arrow-up text-xs trend-up"></i>':s.change<-.3?'<i class="fas fa-arrow-down text-xs trend-down"></i>':'';const ct=s.change===null?'':` ${s.change>0?'+':''}${s.change.toFixed(1)}`;h+=`<div class="glass-card p-4 fade-up" style="animation-delay:${i*.05}s"><div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold uppercase tracking-wider" style="color:${TC[i]}">${TL[i]}</span><span class="text-xs ${ci}">${cii}${ct}</span></div><p class="font-display font-bold text-2xl">${s.avg>0?s.avg.toFixed(1):'--'}</p><p class="text-muted text-xs mt-1">${s.tests} testes &middot; Melhor: ${s.best}</p></div>`}
+    h+='</div><div class="glass-card p-4 mb-5 fade-up" style="animation-delay:.2s"><div style="position:relative;height:150px"><canvas id="ch-tc"></canvas></div></div>';
+  }
+
+  if(has){
+    h+=`<div class="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-5"><div class="lg:col-span-3 glass-card p-4 fade-up" style="animation-delay:.2s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Media por Disciplina</h3><div style="position:relative;height:240px"><canvas id="ch-bar"></canvas></div></div><div class="lg:col-span-2 glass-card p-4 fade-up" style="animation-delay:.25s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Perfil de Desempenho</h3><div style="position:relative;height:240px"><canvas id="ch-rad"></canvas></div></div></div>`;
+    h+=`<div class="glass-card p-4 mb-5 fade-up" style="animation-delay:.3s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Evolucao Temporal</h3><div style="position:relative;height:200px"><canvas id="ch-line"></canvas></div></div>`;
+  }
+
+  const risk=riskD(t),fall=D.disciplines.filter(d=>gGrades(d,t).length>=2&&trnd(d,t)==='down'),tw=D.disciplines.filter(d=>{const a=dAvg(d,t),ta=dTeacherAvg(d,t);return a>0&&(a-ta)>1});
+  if(risk.length)h+=`<div class="glass-card p-4 mb-3 fade-up border-l-2 border-l-danger" style="animation-delay:.4s"><div class="flex items-center gap-2 mb-2"><i class="fas fa-triangle-exclamation text-danger"></i><h4 class="font-display font-semibold text-sm text-danger">Disciplinas em Risco</h4></div><div class="flex flex-wrap gap-2">${risk.map(d=>`<span class="text-sm px-2 py-0.5 rounded" style="background:rgba(255,107,107,0.1);color:#ff6b6b">${d.name} (${dAvg(d,t).toFixed(1)})</span>`).join('')}</div></div>`;
+  if(fall.length)h+=`<div class="glass-card p-4 mb-3 fade-up border-l-2 border-l-warning" style="animation-delay:.45s"><div class="flex items-center gap-2 mb-2"><i class="fas fa-arrow-trend-down text-warning"></i><h4 class="font-display font-semibold text-sm text-warning">Desempenho Caindo</h4></div><div class="flex flex-wrap gap-2">${fall.map(d=>`<span class="text-sm px-2 py-0.5 rounded" style="background:rgba(255,217,61,0.1);color:#ffd93d">${d.name}</span>`).join('')}</div></div>`;
+  if(tw.length)h+=`<div class="glass-card p-4 mb-3 fade-up border-l-2" style="border-left-color:#ffa502;animation-delay:.5s"><div class="flex items-center gap-2 mb-2"><i class="fas fa-calculator" style="color:#ffa502"></i><h4 class="font-display font-semibold text-sm" style="color:#ffa502">Media do Professor</h4></div><div class="flex flex-wrap gap-2">${tw.map(d=>`<span class="text-sm px-2 py-0.5 rounded" style="background:rgba(255,165,2,0.1);color:#ffa502">${d.name}: tua ${dAvg(d,t).toFixed(1)} vs prof ${dTeacherAvg(d,t).toFixed(1)}</span>`).join('')}</div></div>`;
+
+  if(!has)h+=`<div class="empty-card fade-up mt-2" onclick="openAddDisc()" style="animation-delay:.3s"><i class="fas fa-plus-circle text-4xl mb-3 block" style="color:#243530"></i><p class="font-display font-semibold text-lg mb-1" style="color:#5e8572">Comece por aqui</p><p class="text-sm" style="color:#3d5c4e">Adicione disciplinas e registre notas para ver o dashboard.</p></div>`;
+
+  el.innerHTML=h;
+  if(has){updateCharts(t);if(t==='year')updateTrimComp()}
+}
+
+// =============================================
+//  DISCIPLINAS
+// =============================================
+function renderDisc(){
+  const el=document.getElementById('view-disciplinas');
+  if(!D.disciplines.length){el.innerHTML=`<div class="empty-state"><i class="fas fa-book-open"></i><p>Nenhuma disciplina cadastrada.</p><button onclick="openAddDisc()" class="mt-3 text-accent text-sm hover:underline">Adicionar</button></div>`;return}
+  let h='';
+  D.disciplines.forEach((d,i)=>{
+    const tr=d.testsPerTrimester||4;
+    let rows='';
+    for(let t=1;t<=3;t++){
+      const g=d.grades.filter(x=>x.trimester===t);const avg=g.reduce((s,x)=>s+x.value,0)/tr;const tAvg=g.reduce((s,x)=>s+x.value,0)/tr;
+      rows+=`<div class="py-2 ${t<3?'border-b border-edge/40':''}"><div class="flex items-center justify-between mb-1"><span class="text-xs font-semibold uppercase tracking-wider" style="color:${TC[t]}">${TL[t]}</span><div class="flex items-center gap-2">${g.length?`<span class="badge ${st(avg).cls}">${st(avg).label}</span>`:'<span class="text-muted text-xs">--</span>'}${g.length&&Math.abs(avg-tAvg)>.01?`<span class="teacher-diff">P:${tAvg.toFixed(1)}</span>`:''}</div></div><div class="flex items-center justify-between"><span class="font-display font-bold">${g.length?avg.toFixed(1):'--'} <span class="text-muted text-xs font-normal">/ ${MX}</span></span><span class="text-muted text-xs">${g.length}/${tr}</span></div>`;
+      if(g.length)rows+=`<div class="flex flex-wrap gap-1.5 mt-1.5">${g.map(x=>`<span class="text-xs px-1.5 py-0.5 rounded" style="background:${gCol(x.value)}12;color:${gCol(x.value)}">${x.label}: ${x.value.toFixed(1)}</span>`).join('')}</div>`;
+      rows+='</div>';
+    }
+    h+=`<div class="glass-card mb-3 fade-up" style="animation-delay:${i*.05}s"><div class="p-4"><div class="flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-4 h-4 rounded-full" style="background:${d.color}"></div><div><h4 class="font-display font-semibold">${d.name}</h4><span class="text-muted text-xs">${tr} testes/trim${d.target!==null?` &middot; Meta: ${d.target}`:''}</span></div></div><div class="flex items-center gap-1"><button onclick="openAddNota('${d.id}')" class="w-8 h-8 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 flex items-center justify-center transition-colors" aria-label="Adicionar nota"><i class="fas fa-plus text-xs"></i></button><button onclick="toggleDG('${d.id}')" class="w-8 h-8 rounded-lg bg-surface-3 text-muted hover:text-fg flex items-center justify-center transition-colors" aria-label="Expandir"><i class="fas fa-chevron-down text-xs transition-transform" id="ch-${d.id}"></i></button></div></div></div><div class="disc-grades px-4 pb-0" id="dg-${d.id}"><div class="border-t border-edge pt-3 pb-3">${rows}</div></div></div>`;
+  });
+  el.innerHTML=h;
+}
+
+// =============================================
+//  SUGESTÕES
+// =============================================
+function renderSug(){
+  const el=document.getElementById('view-sugestoes');
+  if(!D.disciplines.length){el.innerHTML=`<div class="empty-state"><i class="fas fa-bullseye"></i><p>Adiciona disciplinas para ver sugestoes.</p></div>`;return}
+  let hasAnyGrade=false;
+  let h='<p class="text-muted text-sm mb-5 fade-up">Define a tua meta por disciplina. O sistema calcula quanto precisas em cada teste restante para alcancar essa meta.</p>';
+  D.disciplines.forEach((d,i)=>{
+    const target=d.target!==null?d.target:D.settings.defaultTarget;
+    const lt=latestTrim(d);
+    const sug=getSug(d,lt,target);
+    if(!sug.noData)hasAnyGrade=true;
+    h+=`<div class="glass-card nh p-4 mb-3 fade-up" style="animation-delay:${i*.04}s">`;
+    h+=`<div class="flex items-center justify-between mb-3"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background:${d.color}"></div><h4 class="font-display font-semibold text-sm">${d.name}</h4></div><div class="flex items-center gap-2"><span class="text-muted text-xs">Meta:</span><input type="number" min="0" max="20" step="1" value="${target}" class="input-field py-1 px-2 text-xs text-center" style="width:55px" onchange="setTarget('${d.id}',this.value)">`;
+    if(lt)h+=`<span class="text-xs text-muted">(${TL[lt]})</span>`;
+    h+=`</div></div>`;
+
+    if(sug.noData){h+=`<p class="text-muted text-xs">Sem notas registadas.</p>`}
+    else if(sug.complete){
+      h+=`<p class="text-xs text-accent font-semibold mb-2"><i class="fas fa-check-circle mr-1"></i>Trimestre completo</p><p class="font-display font-bold text-lg">${sug.finalAvg.toFixed(1)} <span class="text-muted text-xs font-normal">/ ${MX}</span> <span class="badge ${st(sug.finalAvg).cls} ml-2">${st(sug.finalAvg).label}</span></p>`;
+    }else{
+      h+=`<div class="sug-timeline mb-3">`;
+      sug.timeline.forEach(x=>{
+        if(x.done){
+          const bc=x.isBest?'best':'';
+          h+=`<div class="sug-test done ${bc}"><div class="text-muted text-[.6rem]">${x.label}</div><div class="font-display font-bold" style="color:${gCol(x.value)}">${x.value.toFixed(1)}</div><span class="badge ${x.status.cls}" style="font-size:.55rem">${x.status.label}</span></div>`;
+        }else{
+          const cls=x.isNext?'next':'';
+          h+=`<div class="sug-test future ${cls}"><div class="text-muted text-[.6rem]">${x.label}</div><div class="font-display font-bold" style="color:${x.possible?gCol(x.needed):'#ff6b6b'}">${x.possible?x.needed:'--'}</div><span class="text-[.55rem] ${x.possible?'text-muted':'text-danger'}">${x.isNext?'Proximo':x.possible?'possivel':'impossivel'}</span></div>`;
+        }
+      });
+      h+=`</div>`;
+      h+=`<div class="grid grid-cols-2 gap-2 text-xs">`;
+      h+=`<div class="bg-surface-2 rounded-lg p-2"><span class="text-muted block mb-0.5">Media atual</span><span class="font-display font-bold">${sug.curAvg.toFixed(1)}</span></div>`;
+      h+=`<div class="bg-surface-2 rounded-lg p-2"><span class="text-muted block mb-0.5">Restantes</span><span class="font-display font-bold">${sug.done}/${sug.tot}</span></div>`;
+      if(sug.achieved){
+        h+=`<div class="bg-surface-2 rounded-lg p-2 col-span-2"><span class="text-accent font-semibold"><i class="fas fa-check-circle mr-1"></i>Meta ${target} ja atingida!</span></div>`;
+      }else if(!sug.possible){
+        h+=`<div class="bg-surface-2 rounded-lg p-2 col-span-2"><span class="text-danger font-semibold"><i class="fas fa-xmark-circle mr-1"></i>Meta ${target} impossivel (${sug.needPer} necessario)</span></div>`;
+      }else{
+        h+=`<div class="bg-surface-2 rounded-lg p-2"><span class="text-muted block mb-0.5">Precisas por teste</span><span class="font-display font-bold" style="color:${gCol(sug.needPer)}">${sug.needPer}</span></div>`;
+        h+=`<div class="bg-surface-2 rounded-lg p-2"><span class="text-muted block mb-0.5">Seguranca (min)</span><span class="font-display font-bold ${sug.safetyOk?'':'text-danger'}">${sug.safetyOk?sug.safety.toFixed(1):'--'}</span></div>`;
+      }
+      h+=`</div>`;
+      if(lt&&sug.rem>0)h+=`<button onclick="openReview('${d.id}',${lt})" class="mt-3 w-full py-2 rounded-lg bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs font-medium transition-colors flex items-center justify-center gap-2"><i class="fas fa-eye"></i>Modo Revisao</button>`;
+    }
+    h+=`</div>`;
+  });
+  if(!hasAnyGrade)h+=`<div class="empty-card mt-2 fade-up" onclick="openAddNota()" style="animation-delay:.3s"><i class="fas fa-pencil text-3xl mb-2 block" style="color:#243530"></i><p class="text-sm" style="color:#5e8572">Regista notas para ver sugestoes.</p></div>`;
+  el.innerHTML=h;
+}
+function setTarget(id,v){const d=D.disciplines.find(x=>x.id===id);if(!d)return;const n=parseInt(v);d.target=(n>=0&&n<=MX)?n:null;saveD();renderSug()}
+
+// =============================================
+//  TRIMESTRES
+// =============================================
+function renderTrim(){
+  const el=document.getElementById('view-trimestres');
+  if(!D.disciplines.length){el.innerHTML=`<div class="empty-state"><i class="fas fa-calendar-days"></i><p>Adiciona disciplinas para analisar trimestres.</p></div>`;return}
+
+  const t=curTrim;
+  const maxT=Math.max(...D.disciplines.map(d=>d.testsPerTrimester||4),1);
+  const has=totalT(t)>0;
+
+  let h=`<div class="flex flex-wrap items-center gap-3 mb-5 fade-up"><div class="flex gap-1 bg-surface-2 p-1 rounded-lg"><button class="trim-tab ${curTrim==1?'active':''}" onclick="curTrim=1;saveState();renderTrim()">1º Trim</button><button class="trim-tab ${curTrim==2?'active':''}" onclick="curTrim=2;saveState();renderTrim()">2º Trim</button><button class="trim-tab ${curTrim==3?'active':''}" onclick="curTrim=3;saveState();renderTrim()">3º Trim</button></div>`;
+  const csvBtn=isPro()?`<button onclick="exportTrimCSV()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Exportar CSV"><i class="fas fa-file-csv"></i>CSV</button>`:`<button onclick="showUpgradeModal()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="CSV - Pro"><i class="fas fa-lock text-[.6rem]"></i>CSV</button>`;
+  const shareBtnHtml=isPro()?`<button onclick="openShareModal()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Partilhar resumo"><i class="fas fa-share-nodes"></i>Partilhar</button>`:`<button onclick="showUpgradeModal()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Partilhar - Pro"><i class="fas fa-lock text-[.6rem]"></i>Partilhar</button>`;
+  h+=`<div class="flex gap-2 ml-auto">${shareBtnHtml}${csvBtn}<button onclick="window.print()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5" title="Imprimir / PDF"><i class="fas fa-print"></i>PDF</button></div></div>`;
+
+  // Profile card (for print and display)
+  const un=D.settings.userName||'';
+  const sn=D.settings.schoolName||'';
+  if((un||sn)&&isPro()){
+    h+=`<div class="glass-card nh p-3 mb-4 fade-up profile-print-card" style="animation-delay:.05s"><div class="flex items-center gap-3">${un?`<div><i class="fas fa-user text-accent text-xs mr-1"></i><span class="text-sm font-semibold">${un}</span></div>`:''}${un&&sn?'<span class="text-edge">|</span>':''}${sn?`<div><i class="fas fa-school text-accent/60 text-xs mr-1"></i><span class="text-sm text-muted">${sn}</span></div>`:''}</div></div>`;
+  }
+
+  const missingTrim=missingDiscCount(t);
+  if(missingTrim>0)h+=`<div class="glass-card p-3 mb-3 fade-up border-l-2" style="border-left-color:#ffa502;animation-delay:.05s"><div class="flex items-center gap-2"><i class="fas fa-exclamation-triangle" style="color:#ffa502"></i><p class="text-xs" style="color:#ffa502"><b>${missingTrim} disciplina(s)</b> sem notas registadas — a tua media global esta a ser afectada.</p></div></div>`;
+
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up overflow-x-auto" style="animation-delay:.1s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Planilha - ${TL[t]}</h3><table class="spreadsheet"><thead><tr><th class="text-left" style="min-width:120px">Disciplina</th>`;
+  for(let i=1;i<=maxT;i++)h+=`<th style="min-width:65px">Teste ${i}</th>`;
+  h+=`<th style="min-width:65px">Media</th><th style="min-width:65px">Prof</th></tr></thead><tbody>`;
+
+  const colBest=Array(maxT).fill(null);
+  D.disciplines.forEach(d=>{const g=d.grades.filter(x=>x.trimester===t);for(let i=0;i<g.length&&i<maxT;i++){const v=g[i].value;if(colBest[i]===null||v>colBest[i])colBest[i]=v}});
+
+  let rowAvgs=[];
+  D.disciplines.forEach((d,di)=>{
+    const g=d.grades.filter(x=>x.trimester===t).sort((a,b)=>a.date.localeCompare(b.date));
+    const tot=d.testsPerTrimester||4;
+    const avg=g.reduce((s,x)=>s+x.value,0)/tot;
+    const tAvg=g.reduce((s,x)=>s+x.value,0)/tot;
+    if(g.length)rowAvgs.push({name:d.name,avg});
+    h+=`<tr><td class="dn"><div class="flex items-center gap-2"><div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${d.color}"></div>${d.name}</div></td>`;
+    for(let i=0;i<maxT;i++){
+      if(i<g.length){
+        const v=g[i].value;const isBest=v===colBest[i]&&colBest[i]!==null;
+        h+=`<td class="${isBest?'best-cell':''}"><span style="color:${gCol(v)}">${v.toFixed(1)}</span></td>`;
+      }else h+=`<td class="text-muted" style="color:#2a3d35">-</td>`;
+    }
+    h+=`<td class="avg-cell" style="color:${g.length?gCol(avg):'#3d5c4e'}">${g.length?avg.toFixed(1):'--'}</td>`;
+    h+=`<td style="color:${g.length&&Math.abs(avg-tAvg)>.01?'#ffd93d':'#3d5c4e'};font-size:.75rem">${g.length?tAvg.toFixed(1):'--'}</td></tr>`;
+  });
+
+  h+=`<tr style="border-top:2px solid #243530"><td class="dn" style="color:#5e8572">Media geral</td>`;
+  for(let i=0;i<maxT;i++){
+    let vals=[];D.disciplines.forEach(d=>{const g=d.grades.filter(x=>x.trimester===t).sort((a,b)=>a.date.localeCompare(b.date));if(i<g.length)vals.push(g[i].value)});
+    const a=vals.length?vals.reduce((s,v)=>s+v,0)/vals.length:0;
+    h+=`<td class="avg-cell" style="color:${vals.length?gCol(a):'#3d5c4e'};font-size:.8rem">${vals.length?a.toFixed(1):'--'}</td>`;
+  }
+  const globalA=gAvg(t);
+  h+=`<td class="avg-cell" style="color:${globalA?gCol(globalA):'#3d5c4e'}">${globalA?globalA.toFixed(1):'--'}</td>`;
+  h+=`<td style="color:#ffd93d;font-size:.75rem">${gTeacherAvg(t)?gTeacherAvg(t).toFixed(1):'--'}</td></tr>`;
+  h+=`</tbody></table></div>`;
+
+  const ts=trimSum(t);
+  const discAvgs=D.disciplines.map(d=>({name:d.name,avg:dAvg(d,t),trnd:trnd(d,t)})).filter(x=>x.avg>0);
+  const best=discAvgs.length?[...discAvgs].sort((a,b)=>b.avg-a.avg)[0]:null;
+  const worst=discAvgs.length?[...discAvgs].sort((a,b)=>a.avg-b.avg)[0]:null;
+  const mostImproved=discAvgs.filter(x=>x.trnd==='up').sort((a,b)=>{const da=dAvg(D.disciplines.find(dd=>dd.name===a.name),t),db=dAvg(D.disciplines.find(dd=>dd.name===b.name),t);return db-da})[0];
+  const mostDeclined=discAvgs.filter(x=>x.trnd==='down')[0];
+
+  h+=`<div class="glass-card nh p-4 fade-up" style="animation-delay:.2s"><h3 class="font-display font-semibold text-sm text-muted mb-4">Relatorio - ${TL[t]}</h3>`;
+  h+=`<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Media Global</p><p class="font-display font-bold text-lg">${ts.avg>0?ts.avg.toFixed(1):'--'}</p></div>`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Media Professor</p><p class="font-display font-bold text-lg" style="color:#ffd93d">${gTeacherAvg(t)?gTeacherAvg(t).toFixed(1):'--'}</p></div>`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Testes</p><p class="font-display font-bold text-lg">${ts.tests} / ${totalExp(t)}</p></div>`;
+  if(ts.change!==null)h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">vs ${TL[t-1]}</p><p class="font-display font-bold text-lg ${ts.change>0?'trend-up':ts.change<0?'trend-down':'trend-stable'}">${ts.change>0?'+':''}${ts.change.toFixed(1)}</p></div>`;
+  h+=`</div>`;
+  if(discAvgs.length){
+    h+=`<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">`;
+    if(best)h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Melhor Disciplina</p><p class="font-display font-semibold text-accent">${best.name} (${best.avg.toFixed(1)})</p></div>`;
+    if(worst)h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Pior Disciplina</p><p class="font-display font-semibold" style="color:${gCol(worst.avg)}">${worst.name} (${worst.avg.toFixed(1)})</p></div>`;
+    if(mostImproved)h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Mais Melhorou</p><p class="font-display font-semibold trend-up">${mostImproved.name} <i class="fas fa-arrow-up text-xs"></i></p></div>`;
+    if(mostDeclined)h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Mais Piorou</p><p class="font-display font-semibold trend-down">${mostDeclined.name} <i class="fas fa-arrow-down text-xs"></i></p></div>`;
+    h+=`</div>`;
+  }
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// =============================================
+//  CSV EXPORT (DO NOT CHANGE)
+// =============================================
+function exportTrimCSV(){
+  if(!D.disciplines.length){toast('Sem disciplinas.','error');return}
+  const t=curTrim;
+  const maxT=Math.max(...D.disciplines.map(d=>d.testsPerTrimester||4),1);
+  let csv='Disciplina';
+  for(let i=1;i<=maxT;i++)csv+=`,Teste ${i}`;
+  csv+=',Media,Media Professor\n';
+  D.disciplines.forEach(d=>{
+    const g=d.grades.filter(x=>x.trimester===t).sort((a,b)=>a.date.localeCompare(b.date));
+    const tot=d.testsPerTrimester||4;
+    const avg=g.length?g.reduce((s,x)=>s+x.value,0)/g.length:0;
+    const tAvg=g.length?g.reduce((s,x)=>s+x.value,0)/tot:0;
+    csv+=`"${d.name}"`;
+    for(let i=0;i<maxT;i++){
+      csv+=i<g.length?`,${g[i].value.toFixed(1)}`:',';
+    }
+    csv+=`,${g.length?avg.toFixed(1):''},${g.length?tAvg.toFixed(1):''}\n`;
+  });
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`espec_${TL[t].replace(/\s/g,'_').replace(/º/,'')}_${today()}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('CSV exportado.','success');
+}
+
+// =============================================
+//  CONFIGURAÇÕES
+// =============================================
+function renderCfg(){
+  const el=document.getElementById('view-configuracoes');
+  const totalGrades=D.disciplines.reduce((s,d)=>s+d.grades.length,0);
+  let storageUsed='0 KB';
+  try{const bytes=new Blob([JSON.stringify(D)]).size;storageUsed=bytes<1024?bytes+' B':(bytes/1024).toFixed(1)+' KB'}catch(e){}
+
+  // Pro status card
+  const proStatus=isPro();
+  let proCard='';
+  if(proStatus){
+    const proDate=localStorage.getItem(PRO_SK+'_date')||'--';
+    proCard=`<div class="glass-card nh p-4 mb-5 fade-up border border-accent/20"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="pro-badge" style="font-size:.7rem;vertical-align:baseline;margin-left:0">PRO</span><span class="font-display font-semibold text-sm text-accent">Activado</span></div><span class="text-muted text-xs">${proDate}</span></div></div>`;
+  }else{
+    proCard=`<div class="glass-card nh p-4 mb-5 fade-up"><div class="flex items-center justify-between"><div><span class="text-muted text-sm">Versao gratuita — ${D.disciplines.length}/${FREE_LIMIT} disciplinas</span></div><button onclick="showUpgradeModal()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors">Activar Pro</button></div></div>`;
+  }
+
+  // Perfil section (first)
+  let h=proCard+`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.02s"><h3 class="font-display font-semibold text-sm text-muted mb-3"><i class="fas fa-user-circle mr-1"></i>Perfil</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="text-muted text-xs mb-1 block">Nome</label><input type="text" maxlength="40" value="${(D.settings.userName||'').replace(/"/g,'&quot;')}" class="input-field" placeholder="O teu nome" onchange="D.settings.userName=this.value.trim();saveD();updateSidebarProfile()"></div><div><label class="text-muted text-xs mb-1 block">Escola</label><input type="text" maxlength="40" value="${(D.settings.schoolName||'').replace(/"/g,'&quot;')}" class="input-field" placeholder="Nome da escola" onchange="D.settings.schoolName=this.value.trim();saveD();updateSidebarProfile()"></div></div></div>`;
+
+  // Default settings
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.03s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Configuracoes Padrao</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="text-muted text-xs mb-1 block">Testes por trimestre (padrao)</label><input type="number" min="1" max="20" value="${D.settings.defaultTests}" class="input-field" onchange="D.settings.defaultTests=clamp(parseInt(this.value)||4,1,20);saveD()"></div><div><label class="text-muted text-xs mb-1 block">Meta padrao (valores)</label><input type="number" min="0" max="20" value="${D.settings.defaultTarget}" class="input-field" onchange="D.settings.defaultTarget=clamp(parseInt(this.value)||14,0,20);saveD()"></div><div><label class="text-muted text-xs mb-1 block">Total de disciplinas (para media global)</label><input type="number" min="1" max="20" value="${D.settings.totalDisciplines||8}" class="input-field" onchange="D.settings.totalDisciplines=clamp(parseInt(this.value)||8,1,20);saveD()"><p class="text-muted text-[.6rem] mt-1">Igual ao director de turma. Disciplinas nao registadas contam como 0.</p></div></div></div>`;
+
+  // Backup / Restore
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.05s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Backup e Restauracao</h3><div class="flex flex-wrap gap-2 mb-3"><button onclick="exportBackup()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fas fa-download"></i>Exportar Backup (JSON)</button><label class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"><i class="fas fa-upload"></i>Importar Backup<input type="file" accept=".json" class="hidden" onchange="handleImport(this.files[0]);this.value=''"></label></div><div id="import-preview" class="hidden"></div></div>`;
+
+  // Partilhar
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.08s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Partilhar</h3><div class="flex flex-wrap gap-2">`;
+  const shareText=encodeURIComponent(`Espec Pro - As minhas notas:\n${D.disciplines.map(d=>{const a=dAvg(d,'year');return a>0?`${d.name}: ${a.toFixed(1)}`:''}).filter(Boolean).join('\n')}`);
+  const shareUrl=encodeURIComponent(APP_URL);
+  h+=`<a href="https://wa.me/?text=${shareText}%0A%0ATenta%20tu%20tamb%C3%A9m%3A%20${shareUrl}" target="_blank" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fab fa-whatsapp" style="color:#25D366"></i>WhatsApp</a>`;
+  h+=`<a href="mailto:?subject=Espec Pro - As minhas notas&body=${shareText}%0A%0ATenta tambem: ${APP_URL}" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-fg text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fas fa-envelope"></i>Email</a>`;
+  h+=`</div></div>`;
+
+  // Data stats
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.1s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Dados</h3><div class="grid grid-cols-2 sm:grid-cols-4 gap-3">`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Disciplinas</p><p class="font-display font-bold text-lg">${D.disciplines.length}</p></div>`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Notas</p><p class="font-display font-bold text-lg">${totalGrades}</p></div>`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Armazenamento</p><p class="font-display font-bold text-lg">${storageUsed}</p></div>`;
+  h+=`<div class="bg-surface-2 rounded-lg p-3"><p class="text-muted text-xs mb-1">Versao</p><p class="font-display font-bold text-lg text-accent">v5.0.0</p></div>`;
+  h+=`</div></div>`;
+
+  // Help button
+  h+=`<div class="glass-card nh p-4 mb-5 fade-up" style="animation-delay:.12s"><div class="flex items-center justify-between"><div><h3 class="font-display font-semibold text-sm text-muted">Ajuda</h3><p class="text-muted text-xs mt-1">Ver o tutorial de introducao novamente.</p></div><button onclick="showOnboarding()" class="bg-surface-2 hover:bg-surface-3 text-muted hover:text-accent text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"><i class="fas fa-circle-question"></i>Abrir Tutorial</button></div></div>`;
+
+  // All grades
+  h+=`<div class="glass-card nh p-4 fade-up" style="animation-delay:.15s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Todas as Notas</h3>`;
+  if(!D.disciplines.length||!D.disciplines.some(d=>d.grades.length)){
+    h+=`<p class="text-muted text-sm">Nenhuma nota registada.</p>`;
+  }else{
+    D.disciplines.forEach(d=>{
+      if(!d.grades.length)return;
+      h+=`<div class="mb-4"><div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full" style="background:${d.color}"></div><h4 class="font-display font-semibold text-sm">${d.name}</h4><span class="text-muted text-xs">${d.grades.length} nota${d.grades.length>1?'s':''}</span></div>`;
+      d.grades.slice().reverse().forEach(g=>{
+        const eh=g.editHistory.length?g.editHistory[g.editHistory.length-1]:null;
+        h+=`<div class="cfg-grade-row"><div class="flex-1 min-w-0"><span class="text-sm">${g.label}</span><span class="text-muted text-xs ml-2">${fmtD(g.date)}</span><span class="text-xs ml-2" style="color:${TC[g.trimester]}">${TL[g.trimester]}</span>${eh?`<span class="text-muted text-[.65rem] ml-2">(editado: ${eh.oldValue}→${eh.newValue})</span>`:''}</div><span class="font-display font-bold text-sm mr-2" style="color:${gCol(g.value)}">${g.value.toFixed(1)}</span><button onclick="openEditNota('${g.id}')" class="w-7 h-7 rounded bg-surface-3 text-muted hover:text-accent flex items-center justify-center transition-colors" aria-label="Editar"><i class="fas fa-pen text-[.6rem]"></i></button><button onclick="confirmDelGrade('${d.id}','${g.id}')" class="w-7 h-7 rounded bg-surface-3 text-muted hover:text-danger flex items-center justify-center transition-colors" aria-label="Eliminar"><i class="fas fa-trash text-[.6rem]"></i></button></div>`;
+      });
+      h+=`</div>`;
+    });
+  }
+  h+=`</div>`;
+
+  // Delete disciplines
+  if(D.disciplines.length){
+    h+=`<div class="glass-card nh p-4 fade-up" style="animation-delay:.2s"><h3 class="font-display font-semibold text-sm text-muted mb-3">Gerir Disciplinas</h3><div class="space-y-2">`;
+    D.disciplines.forEach(d=>{
+      h+=`<div class="flex items-center justify-between p-2 rounded-lg bg-surface-2"><div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full" style="background:${d.color}"></div><span class="text-sm">${d.name}</span><span class="text-muted text-xs">${d.grades.length} notas</span></div><button onclick="confirmDelDisc('${d.id}')" class="text-muted hover:text-danger text-xs transition-colors"><i class="fas fa-trash mr-1"></i>Eliminar</button></div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  el.innerHTML=h;
+}
+
+// =============================================
+//  BACKUP / RESTORE
+// =============================================
+function exportBackup(){
+  const data=JSON.stringify(D,null,2);
+  const dateStr=today();
+  const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`espec_backup_${dateStr}.json`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  toast('Backup exportado.','success');
+}
+
+function handleImport(file){
+  if(!file){toast('Nenhum ficheiro seleccionado.','error');return}
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext!=='json'){toast('O ficheiro deve ser .json','error');return}
+  toast('A importar...','info');
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data||typeof data!=='object'){toast('JSON invalido: formato incorreto.','error');return}
+      if(!data.settings||typeof data.settings!=='object'){toast('JSON invalido: falta settings.','error');return}
+      if(!Array.isArray(data.disciplines)){toast('JSON invalido: falta disciplines array.','error');return}
+      const discCount=data.disciplines.length;
+      const gradeCount=data.disciplines.reduce((s,d)=>s+(Array.isArray(d.grades)?d.grades.length:0),0);
+      if(!discCount&&!gradeCount){toast('JSON sem dados de disciplinas ou notas.','error');return}
+      // Show preview
+      const prev=document.getElementById('import-preview');
+      if(prev){
+        prev.classList.remove('hidden');
+        prev.innerHTML=`<div class="bg-surface-2 rounded-lg p-3 mb-2"><p class="text-sm mb-2">Preview do ficheiro:</p><p class="text-muted text-xs"><i class="fas fa-book mr-1"></i>${discCount} disciplina(s)</p><p class="text-muted text-xs"><i class="fas fa-pencil mr-1"></i>${gradeCount} nota(s)</p></div><div class="flex gap-2"><button onclick="confirmImport()" class="bg-accent hover:bg-accent-dim text-base font-semibold text-xs px-4 py-1.5 rounded-lg transition-colors">Confirmar Importacao</button><button onclick="document.getElementById('import-preview').classList.add('hidden')" class="text-muted hover:text-fg text-xs px-4 py-1.5 transition-colors">Cancelar</button></div>`;
+        window._pendingImport=JSON.stringify(data);
+      }
+    }catch(err){
+      toast('Erro ao ler JSON: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function confirmImport(){
+  if(!window._pendingImport){toast('Nenhum dado pendente.','error');return}
+  try{
+    const newData=JSON.parse(window._pendingImport);
+    delete window._pendingImport;
+    if(!newData.settings)newData.settings={};
+    if(!newData.disciplines)newData.disciplines=[];
+    D=newData;
+    sanitize();
+    saveD();
+    updateSidebarProfile();
+    document.getElementById('import-preview').classList.add('hidden');
+    toast('Dados importados com sucesso!','success');
+    go(curView);
+  }catch(err){
+    toast('Erro ao importar: '+err.message,'error');
+  }
+}
+
+// =============================================
+//  GRÁFICOS
+// =============================================
+let chBar=null,chRad=null,chLine=null,chTC=null;
+const cD={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(15,22,19,0.95)',borderColor:'#243530',borderWidth:1,titleFont:{family:'Space Grotesk',weight:'600'},bodyFont:{family:'DM Sans'},padding:10,cornerRadius:8}}};
+function destroyC(){[chBar,chRad,chLine,chTC].forEach(c=>{try{if(c)c.destroy()}catch(e){}});chBar=chRad=chLine=chTC=null}
+
+function updateCharts(t){
+  destroyC();
+  const discs=D.disciplines.filter(d=>gGrades(d,t).length>0);
+  const ctx1=document.getElementById('ch-bar').getContext('2d');
+  chBar=new Chart(ctx1,{type:'bar',data:{labels:discs.map(d=>d.name),datasets:[{data:discs.map(d=>dAvg(d,t)),backgroundColor:discs.map(d=>d.color+'33'),borderColor:discs.map(d=>d.color),borderWidth:2,borderRadius:6,borderSkipped:false}]},options:{...cD,scales:{y:{min:0,max:MX,ticks:{color:'#3d5c4e',font:{family:'DM Sans',size:10},stepSize:4},grid:{color:'rgba(36,53,48,0.5)'},border:{display:false}},x:{ticks:{color:'#5e8572',font:{family:'DM Sans',size:10}},grid:{display:false},border:{display:false}}}}});
+  const ctx2=document.getElementById('ch-rad').getContext('2d');
+  if(discs.length>=3){chRad=new Chart(ctx2,{type:'radar',data:{labels:discs.map(d=>d.name),datasets:[{data:discs.map(d=>dAvg(d,t)),backgroundColor:'rgba(0,230,138,0.1)',borderColor:'#00e68a',borderWidth:2,pointBackgroundColor:discs.map(d=>d.color),pointBorderColor:discs.map(d=>d.color),pointRadius:4,pointHoverRadius:6}]},options:{...cD,scales:{r:{min:0,max:MX,ticks:{display:false,stepSize:4},grid:{color:'rgba(36,53,48,0.5)'},angleLines:{color:'rgba(36,53,48,0.5)'},pointLabels:{color:'#5e8572',font:{family:'DM Sans',size:9}}}}}})}else{chRad=new Chart(ctx2,{type:'radar',data:{labels:['Min. 3 disc.'],datasets:[{data:[0]}]},options:{...cD,scales:{r:{display:false}}}})}
+  const ctx3=document.getElementById('ch-line').getContext('2d');const td=temporalD(t);
+  if(td.labels.length>=2){chLine=new Chart(ctx3,{type:'line',data:{labels:td.labels,datasets:[{data:td.values,borderColor:'#00e68a',backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(0,230,138,0.2)');g.addColorStop(1,'rgba(0,230,138,0.0)');return g},fill:true,tension:.4,borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#00e68a',pointBorderColor:'#080c0a',pointBorderWidth:2,pointHoverRadius:5}]},options:{...cD,scales:{y:{min:0,max:MX,ticks:{color:'#3d5c4e',font:{family:'DM Sans',size:10},stepSize:4},grid:{color:'rgba(36,53,48,0.4)'},border:{display:false}},x:{ticks:{color:'#5e8572',font:{family:'DM Sans',size:9},maxRotation:0},grid:{display:false},border:{display:false}}},interaction:{intersect:false,mode:'index'}}})}else{chLine=new Chart(ctx3,{type:'line',data:{labels:['Sem dados'],datasets:[{data:[0]}]},options:{...cD,scales:{y:{display:false},x:{ticks:{color:'#3d5c4e'},grid:{display:false}}}}})}
+}
+
+function updateTrimComp(){
+  const ctx=document.getElementById('ch-tc');if(!ctx)return;
+  const avgs=[1,2,3].map(t=>trimSum(t).avg);
+  chTC=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels:['1º Trim','2º Trim','3º Trim'],datasets:[{data:avgs,backgroundColor:['rgba(0,230,138,0.2)','rgba(107,197,255,0.2)','rgba(255,217,61,0.2)'],borderColor:['#00e68a','#6bc5ff','#ffd93d'],borderWidth:2,borderRadius:6,borderSkipped:false}]},options:{...cD,scales:{y:{min:0,max:MX,ticks:{color:'#3d5c4e',font:{family:'DM Sans',size:10},stepSize:4},grid:{color:'rgba(36,53,48,0.5)'},border:{display:false}},x:{ticks:{color:'#5e8572',font:{family:'DM Sans',size:10}},grid:{display:false},border:{display:false}}},plugins:{...cD.plugins,tooltip:{...cD.plugins.tooltip,callbacks:{label:c=>c.raw>0?c.raw.toFixed(1)+' valores':'Sem dados'}}}}});
+}
+
+// =============================================
+//  MODAIS
+// =============================================
+function showUpgradeModal(){
+  document.getElementById('inp-pro-key').value='';
+  document.getElementById('pro-activate-msg').classList.add('hidden');
+  openM('modal-upgrade');
+}
+function activatePro(){
+  const inp=document.getElementById('inp-pro-key');
+  const msg=document.getElementById('pro-activate-msg');
+  const code=inp.value.trim().toUpperCase();
+  if(!code){msg.textContent='Introduz uma chave.';msg.className='text-xs mt-2 text-center text-danger';msg.classList.remove('hidden');return}
+  if(PRO_KEYS.includes(code)){
+    try{localStorage.setItem(PRO_SK,code)}catch(e){}
+    try{localStorage.setItem(PRO_SK+'_date',new Date().toLocaleDateString('pt-BR'))}catch(e){}
+    msg.textContent='Activado com sucesso!';msg.className='text-xs mt-2 text-center text-accent';msg.classList.remove('hidden');
+    toast('Espec Pro activado!','success');
+    document.body.classList.add('pro-active');
+    setTimeout(()=>{closeM('modal-upgrade');go(curView)},1000);
+  }else{
+    msg.textContent='Chave invalida. Verifica e tenta novamente.';msg.className='text-xs mt-2 text-center text-danger';msg.classList.remove('hidden');
+  }
+}
+
+function openM(id){document.getElementById(id).classList.add('open');setTimeout(()=>{const i=document.getElementById(id).querySelector('input,select');if(i)i.focus()},100)}
+function closeM(id){document.getElementById(id).classList.remove('open')}
+
+function openAddDisc(){
+  if(!checkDiscLimit())return;
+  notaMode='add';editDiscId=null;
+  document.getElementById('modal-disc-title').textContent='Nova Disciplina';
+  document.getElementById('modal-disc-sub').textContent='Define o nome e quantos testes o professor usa por trimestre.';
+  document.getElementById('btn-d-save').textContent='Adicionar';
+  document.getElementById('inp-d-name').value='';
+  document.getElementById('inp-d-tests').value=D.settings.defaultTests;
+  openM('modal-disc');
+}
+
+function openEditDisc(id){
+  const d=D.disciplines.find(x=>x.id===id);if(!d)return;
+  notaMode='edit';editDiscId=id;
+  document.getElementById('modal-disc-title').textContent='Editar Disciplina';
+  document.getElementById('modal-disc-sub').textContent='Altere o nome ou testes por trimestre.';
+  document.getElementById('btn-d-save').textContent='Guardar';
+  document.getElementById('inp-d-name').value=d.name;
+  document.getElementById('inp-d-tests').value=d.testsPerTrimester;
+  openM('modal-disc');
+}
+
+function handleSaveDisc(){
+  const name=document.getElementById('inp-d-name').value.trim();
+  const tests=parseInt(document.getElementById('inp-d-tests').value)||4;
+  if(!name){toast('Informe o nome.','error');return}
+  if(tests<1||tests>20){toast('Testes entre 1 e 20.','error');return}
+
+  if(notaMode==='edit'&&editDiscId){
+    const d=D.disciplines.find(x=>x.id===editDiscId);if(!d)return;
+    if(D.disciplines.some(x=>x.id!==editDiscId&&x.name.toLowerCase()===name.toLowerCase())){toast('Esta disciplina ja existe.','error');return}
+    d.name=name;d.testsPerTrimester=tests;saveD();closeM('modal-disc');toast('Disciplina atualizada.','success');
+  }else{
+    if(D.disciplines.some(x=>x.name.toLowerCase()===name.toLowerCase())){toast('Esta disciplina ja existe.','error');return}
+    D.disciplines.push({id:genId(),name,color:nextColor(),testsPerTrimester:tests,target:null,grades:[]});
+    saveD();closeM('modal-disc');toast(`"${name}" adicionada.`,'success');
+  }
+  go(curView);
+}
+
+function openAddNota(discId){
+  if(!D.disciplines.length){toast('Adiciona uma disciplina primeiro.','error');return}
+  notaMode='add';notaEditId=null;
+  document.getElementById('modal-nota-title').textContent='Registrar Nota';
+  document.getElementById('modal-nota-sub').textContent='Preenche os dados do teste.';
+  document.getElementById('btn-n-save').textContent='Registrar';
+  document.getElementById('edit-history-info').classList.add('hidden');
+  const sel=document.getElementById('inp-n-disc');
+  sel.innerHTML=D.disciplines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  if(discId)sel.value=discId;
+  if(curTrim!=='year')document.getElementById('inp-n-trim').value=curTrim;
+  document.getElementById('inp-n-label').value='';
+  document.getElementById('inp-n-value').value='';
+  document.getElementById('inp-n-date').value=today();
+  openM('modal-nota');
+}
+
+function openEditNota(gradeId){
+  let grade=null,disc=null;
+  D.disciplines.forEach(d=>{const g=d.grades.find(x=>x.id===gradeId);if(g){grade=g;disc=d}});
+  if(!grade||!disc)return;
+  notaMode='edit';notaEditId=gradeId;
+  document.getElementById('modal-nota-title').textContent='Editar Nota';
+  document.getElementById('modal-nota-sub').textContent='Altera os dados do teste.';
+  document.getElementById('btn-n-save').textContent='Guardar';
+  const sel=document.getElementById('inp-n-disc');
+  sel.innerHTML=D.disciplines.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  sel.value=disc.id;
+  document.getElementById('inp-n-trim').value=grade.trimester;
+  document.getElementById('inp-n-label').value=grade.label;
+  document.getElementById('inp-n-value').value=grade.value;
+  document.getElementById('inp-n-date').value=grade.date;
+  const eh=grade.editHistory;
+  if(eh.length){const last=eh[eh.length-1];document.getElementById('edit-history-info').innerHTML=`<i class="fas fa-history mr-1"></i>Ultima alteracao: ${last.oldValue} → ${last.newValue}`;document.getElementById('edit-history-info').classList.remove('hidden')}
+  else document.getElementById('edit-history-info').classList.add('hidden');
+  openM('modal-nota');
+}
+
+function handleSaveNota(){
+  const discId=document.getElementById('inp-n-disc').value;
+  const trim=parseInt(document.getElementById('inp-n-trim').value);
+  const label=document.getElementById('inp-n-label').value.trim()||'Teste';
+  const valStr=document.getElementById('inp-n-value').value;
+  const date=document.getElementById('inp-n-date').value;
+  if(!discId){toast('Seleciona disciplina.','error');return}
+  if(!valStr||isNaN(parseFloat(valStr))){toast('Nota invalida.','error');return}
+  const val=Math.round(parseFloat(valStr)*10)/10;
+  if(val<0||val>MX){toast(`Nota entre 0 e ${MX}.`,'error');return}
+  const disc=D.disciplines.find(d=>d.id===discId);if(!disc)return;
+
+  if(notaMode==='edit'&&notaEditId){
+    const grade=disc.grades.find(g=>g.id===notaEditId);
+    if(!grade)return;
+    if(grade.value!==val){grade.editHistory.push({oldValue:grade.value,newValue:val,timestamp:new Date().toISOString()})}
+    grade.value=val;grade.label=label;grade.trimester=trim;grade.date=date||today();
+    saveD();closeM('modal-nota');toast('Nota atualizada.','success');
+  }else{
+    disc.grades.push({id:genId(),value:val,date:date||today(),label,trimester:trim,editHistory:[]});
+    saveD();closeM('modal-nota');toast(`${val.toFixed(1)} em "${disc.name}".`,'success');
+  }
+  go(curView);
+}
+
+function confirmDelGrade(discId,gradeId){
+  const disc=D.disciplines.find(d=>d.id===discId);if(!disc)return;
+  const grade=disc.grades.find(g=>g.id===gradeId);if(!grade)return;
+  document.getElementById('confirm-msg').textContent=`Eliminar nota "${grade.label}" (${grade.value.toFixed(1)}) de "${disc.name}"?`;
+  document.getElementById('confirm-btn').onclick=()=>{disc.grades=disc.grades.filter(g=>g.id!==gradeId);saveD();closeM('modal-confirm');toast('Nota eliminada.','info');go(curView)};
+  openM('modal-confirm');
+}
+
+function confirmDelDisc(id){
+  const d=D.disciplines.find(x=>x.id===id);if(!d)return;
+  document.getElementById('confirm-msg').textContent=`Eliminar "${d.name}" e todas as ${d.grades.length} notas?`;
+  document.getElementById('confirm-btn').onclick=()=>{D.disciplines=D.disciplines.filter(x=>x.id!==id);saveD();closeM('modal-confirm');toast(`"${d.name}" eliminada.`,'info');go(curView)};
+  openM('modal-confirm');
+}
+
+// =============================================
+//  REVIEW MODE
+// =============================================
+function openReview(discId,trim){
+  const d=D.disciplines.find(x=>x.id===discId);if(!d)return;
+  const target=d.target!==null?d.target:D.settings.defaultTarget;
+  const sug=getSug(d,trim,target);
+  if(sug.noData||sug.complete)return;
+
+  const lastGrades=sug.timeline.filter(x=>x.done).slice(-3);
+  const nextTest=sug.timeline.find(x=>x.isNext);
+
+  let h=`<div class="mb-6"><p class="text-muted text-xs uppercase tracking-wider mb-1">Modo Revisao</p><h2 class="font-display font-bold text-2xl">${d.name}</h2><p class="text-muted text-sm mt-1">${TL[trim]} &middot; Teste ${sug.done+1} de ${sug.tot}</p></div>`;
+  h+=`<div class="mb-6"><p class="text-muted text-xs mb-2 uppercase tracking-wider">Ultimas notas</p><div class="flex justify-center gap-3">`;
+  lastGrades.forEach(g=>{h+=`<div class="text-center"><div class="w-14 h-14 rounded-xl flex items-center justify-center font-display font-bold text-lg mb-1" style="background:${gCol(g.value)}15;color:${gCol(g.value)};border:1px solid ${gCol(g.value)}30">${g.value.toFixed(1)}</div><p class="text-muted text-[.65rem]">${g.label}</p></div>`});
+  h+=`</div></div>`;
+
+  h+=`<div class="mb-6"><p class="text-muted text-xs mb-1 uppercase tracking-wider">Meta: ${target} valores</p><div class="font-display font-bold" style="font-size:3.5rem;color:${sug.achieved?'#00e68a':sug.possible?gCol(sug.needPer):'#ff6b6b'}">${sug.achieved?'Ja atingida':sug.possible?sug.needPer.toFixed(1):'--'}</div><p class="text-muted text-sm mt-1">${sug.achieved?'Parabens!':sug.possible?'precisas no proximo teste':'impossivel'}</p></div>`;
+
+  if(!sug.achieved&&sug.possible){
+    h+=`<div class="grid grid-cols-2 gap-3 mb-8"><div class="bg-surface-2 rounded-lg p-3 text-left"><p class="text-muted text-[.65rem] mb-1">Seguranca (nao chumbar)</p><p class="font-display font-bold ${sug.safetyOk?'':'text-danger'}">${sug.safetyOk?sug.safety.toFixed(1):'--'}</p></div><div class="bg-surface-2 rounded-lg p-3 text-left"><p class="text-muted text-[.65rem] mb-1">Media atual</p><p class="font-display font-bold">${sug.curAvg.toFixed(1)}</p></div></div>`;
+  }
+
+  h+=`<button onclick="closeReview()" class="px-8 py-2.5 rounded-lg bg-surface-2 hover:bg-surface-3 text-fg text-sm font-medium transition-colors">Fechar</button>`;
+
+  document.getElementById('review-card').innerHTML=h;
+  document.getElementById('review-overlay').classList.add('open');
+}
+function closeReview(){document.getElementById('review-overlay').classList.remove('open')}
+
+// =============================================
+//  ONBOARDING (7 steps - redesigned)
+// =============================================
+const ONBOARD_STEPS = [
+  {
+    icon: '<i class="fas fa-graduation-cap" style="color:#00e68a"></i>',
+    title: 'Bem-vindo ao Espec Pro',
+    desc: 'O teu especionador inteligente para acompanhar notas, calcular medias e alcancar os teus objetivos academicos.',
+    type: 'welcome'
+  },
+  {
+    icon: '<i class="fas fa-user" style="color:#6bc5ff"></i>',
+    title: 'Como te chamas?',
+    desc: 'O teu nome aparece nos relatorios e no perfil.',
+    input: 'text',
+    placeholder: 'O teu nome',
+    key: 'userName'
+  },
+  {
+    icon: '<i class="fas fa-school" style="color:#ffd93d"></i>',
+    title: 'Qual e a tua escola?',
+    desc: 'Para personalizar os teus relatorios.',
+    input: 'text',
+    placeholder: 'Nome da escola',
+    key: 'schoolName'
+  },
+  {
+    icon: '<i class="fas fa-list-ol" style="color:#c77dff"></i>',
+    title: 'Quantas disciplinas tens?',
+    desc: 'Este valor e usado para calcular a tua media global correctamente, igual ao director de turma.',
+    input: 'number',
+    placeholder: 'Ex: 8',
+    key: 'totalDisciplines',
+    inputAttrs: 'min="1" max="20"'
+  },
+  {
+    icon: '<i class="fas fa-sparkles" style="color:#ff8c42"></i>',
+    title: 'Funcionalidades Poderosas',
+    desc: '',
+    type: 'features'
+  },
+  {
+    icon: '<i class="fas fa-lightbulb" style="color:#ffd93d"></i>',
+    title: 'Dicas para Comecar',
+    desc: '',
+    type: 'tips'
+  },
+  {
+    icon: '<i class="fas fa-rocket" style="color:#00e68a"></i>',
+    title: 'Tudo Pronto!',
+    desc: 'Comeca por adicionar as tuas disciplinas e registar as notas dos teus testes.',
+    type: 'ready'
+  }
+];
+let onboardStep=0;
+
+function showOnboarding(){
+  onboardStep=0;
+  renderOnboardStep();
+  document.getElementById('onboard-overlay').classList.add('open');
+}
+function closeOnboarding(){
+  document.getElementById('onboard-overlay').classList.remove('open');
+  D.settings.onboarded=true;
+  saveD();
+  updateSidebarProfile();
+}
+function nextOnboardStep(){
+  const step=ONBOARD_STEPS[onboardStep];
+  if(step.input){
+    const inp=document.getElementById('onboard-inp');
+    const val=step.input==='number'?parseInt(inp.value):inp.value.trim();
+    if(step.input==='number'){
+      const n=parseInt(val);
+      if(!n||n<1||n>20){toast('Introduz um numero entre 1 e 20.','error');return}
+      D.settings[step.key]=n;
+    }else if(step.input==='text'){
+      D.settings[step.key]=val||'';
+    }
+    saveD();
+    updateSidebarProfile();
+  }
+  onboardStep++;
+  if(onboardStep>=ONBOARD_STEPS.length){closeOnboarding();return}
+  renderOnboardStep();
+}
+function renderOnboardStep(){
+  const step=ONBOARD_STEPS[onboardStep];
+  const total=ONBOARD_STEPS.length;
+
+  // Update progress bar
+  document.getElementById('onboard-progress').style.width=((onboardStep+1)/total*100)+'%';
+
+  // Update icon
+  const iconEl=document.getElementById('onboard-icon');
+  iconEl.innerHTML=step.icon;
+
+  // Update title
+  document.getElementById('onboard-title').textContent=step.title;
+
+  // Handle different step types
+  const descEl=document.getElementById('onboard-desc');
+  const inputDiv=document.getElementById('onboard-input');
+  const inp=document.getElementById('onboard-inp');
+  const contentEl=document.getElementById('onboard-content');
+
+  // Remove old feature grid if exists
+  const oldFeatures=contentEl.querySelector('.onboard-features');
+  if(oldFeatures)oldFeatures.remove();
+
+  // Clear celebration
+  const celEl=document.getElementById('onboard-celebration');
+  celEl.innerHTML='';
+
+  inputDiv.classList.add('hidden');
+
+  if(step.type==='features'){
+    descEl.textContent='Tudo o que precisas para dominar as tuas notas:';
+    const features=[
+      {icon:'fa-chart-pie',text:'Dashboard com graficos'},
+      {icon:'fa-bullseye',text:'Sugestoes por disciplina'},
+      {icon:'fa-calculator',text:'Media do professor'},
+      {icon:'fa-file-pdf',text:'Exportar para PDF'},
+      {icon:'fa-share-nodes',text:'Partilhar no WhatsApp'},
+      {icon:'fa-cloud-arrow-down',text:'Backup seguro'}
+    ];
+    const grid=document.createElement('div');
+    grid.className='onboard-features';
+    features.forEach((f,i)=>{
+      grid.innerHTML+=`<div class="onboard-feature-item" style="animation-delay:${i*0.08}s"><i class="fas ${f.icon}"></i><span>${f.text}</span></div>`;
+    });
+    contentEl.insertBefore(grid,inputDiv);
+  }else if(step.type==='tips'){
+    descEl.textContent='Algumas dicas para aproveitar ao maximo:';
+    const tips=[
+      {icon:'fa-plus-circle',text:'Adiciona todas as disciplinas'},
+      {icon:'fa-pencil',text:'Regista notas logo apos testes'},
+      {icon:'fa-bullseye',text:'Define metas realistas'},
+      {icon:'fa-eye',text:'Usa o Modo Revisao'}
+    ];
+    const grid=document.createElement('div');
+    grid.className='onboard-features';
+    grid.style.gridTemplateColumns='1fr';
+    tips.forEach((t,i)=>{
+      grid.innerHTML+=`<div class="onboard-feature-item" style="animation-delay:${i*0.1}s"><i class="fas ${t.icon}"></i><span>${t.text}</span></div>`;
+    });
+    contentEl.insertBefore(grid,inputDiv);
+  }else if(step.type==='ready'){
+    descEl.textContent=step.desc;
+    triggerCelebration();
+  }else if(step.input){
+    descEl.textContent=step.desc;
+    inputDiv.classList.remove('hidden');
+    inp.type=step.input;
+    inp.placeholder=step.placeholder||'';
+    if(step.input==='number'){
+      inp.setAttribute('min','1');
+      inp.setAttribute('max','20');
+    }else{
+      inp.removeAttribute('min');
+      inp.removeAttribute('max');
+    }
+    inp.value=D.settings[step.key]||'';
+    setTimeout(()=>inp.focus(),300);
+  }else{
+    descEl.textContent=step.desc;
+  }
+
+  // Update button text
+  document.getElementById('onboard-next').textContent=onboardStep===total-1?'Comecar':'Seguinte';
+
+  // Update dots
+  document.getElementById('onboard-dots').innerHTML=ONBOARD_STEPS.map((_,i)=>
+    `<div class="onboard-dot-new ${i===onboardStep?'active':''}" onclick="onboardStep=${i};renderOnboardStep()"></div>`
+  ).join('');
+}
+
+function triggerCelebration(){
+  const container=document.getElementById('onboard-celebration');
+  container.innerHTML='';
+  const colors=['#00e68a','#6bc5ff','#ffd93d','#ff8c42','#c77dff','#ff6b9d'];
+  for(let i=0;i<20;i++){
+    const particle=document.createElement('div');
+    particle.className='celebrate-particle';
+    particle.style.left=Math.random()*100+'%';
+    particle.style.top=(40+Math.random()*40)+'%';
+    particle.style.background=colors[Math.floor(Math.random()*colors.length)];
+    particle.style.animationDelay=(Math.random()*0.5)+'s';
+    particle.style.animationDuration=(1+Math.random()*1)+'s';
+    container.appendChild(particle);
+  }
+}
+
+// =============================================
+//  UTILITÁRIOS UI
+// =============================================
+function toggleSidebar(o){document.getElementById('sidebar').classList.toggle('open',o);document.getElementById('sidebar-overlay').classList.toggle('open',o)}
+function toggleDG(id){const el=document.getElementById('dg-'+id);const ch=document.getElementById('ch-'+id);el.classList.toggle('open');if(ch)ch.style.transform=el.classList.contains('open')?'rotate(180deg)':''}
+function toast(msg,type='info'){const c=document.getElementById('toast-c');const t=document.createElement('div');t.className=`toast ${type}`;const i=type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':'fa-info-circle';t.innerHTML=`<i class="fas ${i} mr-2"></i>${msg}`;c.appendChild(t);setTimeout(()=>{if(t.parentNode)t.remove()},3000)}
+
+function resetAll(){
+  if(!D.disciplines.length){toast('Sem dados.','info');return}
+  document.getElementById('confirm-msg').textContent='Apagar TODOS os dados? Esta accao nao pode ser desfeita.';
+  document.getElementById('confirm-btn').onclick=()=>{D={settings:{defaultTests:4,defaultTarget:14,onboarded:false,dataVersion:DATA_VERSION,userName:'',schoolName:'',totalDisciplines:8},disciplines:[]};saveD();try{localStorage.removeItem(STK)}catch(e){}try{localStorage.removeItem(PRO_SK);localStorage.removeItem(PRO_SK+'_date')}catch(e){}closeM('modal-confirm');updateSidebarProfile();toast('Dados eliminados.','info');go(curView)};
+  openM('modal-confirm');
+}
+
+// =============================================
+//  INIT
+// =============================================
+document.addEventListener('DOMContentLoaded',()=>{
+  loadD();
+  sanitize();
+  restoreState();
+  updateSidebarProfile();
+
+  // Set Pro body class
+  if(isPro())document.body.classList.add('pro-active');
+
+  // Set print date attribute
+  document.getElementById('view-title').setAttribute('data-print-date','Impresso em '+new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+
+  // Date display
+  document.getElementById('current-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Nav clicks
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>go(n.dataset.view)));
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));closeReview();toggleSidebar(false)}
+  });
+
+  // First visit: show onboarding, else go to saved view
+  if(!D.settings.onboarded){
+    go('dashboard');
+    setTimeout(()=>showOnboarding(),400);
+  }else{
+    go(curView);
+  }
+});
+</script>
+</body>
+</html>
